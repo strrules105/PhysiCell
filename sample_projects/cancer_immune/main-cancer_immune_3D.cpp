@@ -232,7 +232,7 @@ int main( int argc, char* argv[] )
 			// { microenvironment.compute_all_gradient_vectors(); }
 			
 			// run PhysiCell 
-			((Cell_Container *)microenvironment.agent_container)->update_all_cells( PhysiCell_globals.current_time );
+			// ((Cell_Container *)microenvironment.agent_container)->update_all_cells( PhysiCell_globals.current_time );
 			
 			PhysiCell_globals.current_time += diffusion_dt;
 		}
