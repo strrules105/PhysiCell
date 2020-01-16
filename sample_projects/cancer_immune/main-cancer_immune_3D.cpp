@@ -234,6 +234,18 @@ int main( int argc, char* argv[] )
 			// run PhysiCell 
 			// ((Cell_Container *)microenvironment.agent_container)->update_all_cells( PhysiCell_globals.current_time );
 			
+			
+			// manually call the code for cell sources and sinks, 
+			// since these are ordinarily automatically done as part of phenotype.secretion in the 
+			// PhysiCell update that we commented out above. Remove this when we go 
+			// back to main code 
+
+			#pragma omp parallel for 
+			for( int i=0; i < (*all_cells).size(); i++ )
+			{
+				(*all_cells)[i]->phenotype.secretion.advance( (*all_cells)[i], (*all_cells)[i]->phenotype , diffusion_dt_ );
+			}			
+			
 			PhysiCell_globals.current_time += diffusion_dt;
 		}
 		
