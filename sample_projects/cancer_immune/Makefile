@@ -2,6 +2,7 @@ VERSION := $(shell grep . VERSION.txt | cut -f1 -d:)
 PROGRAM_NAME := cancer_immune_3D
 
 CC := g++
+PGI := pgc++
 # CC := g++-mp-7 # typical macports compiler name
 # CC := g++-7 # typical homebrew compiler name 
 
@@ -31,8 +32,12 @@ ARCH := native # best auto-tuning
 
 # CFLAGS := -march=$(ARCH) -Ofast -s -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11
 CFLAGS := -march=$(ARCH) -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11
+# ACCFLAGS := used for GPU and PGI
+ACCFLAGS := -std=c++11 _minline -Minfo=accel -acc -ta=tesla,cc70
 
 COMPILE_COMMAND := $(CC) $(CFLAGS) 
+
+ACC_COMPILE_COMMAND := $(PGI) $(ACCFLAGS)
 
 BioFVM_OBJECTS := BioFVM_vector.o BioFVM_mesh.o BioFVM_microenvironment.o BioFVM_solvers.o BioFVM_matlab.o \
 BioFVM_utilities.o BioFVM_basic_agent.o BioFVM_MultiCellDS.o BioFVM_agent_container.o 
@@ -80,34 +85,34 @@ PhysiCell_custom.o: ./core/PhysiCell_custom.cpp
 # BioFVM core components (needed by PhysiCell)
 	
 BioFVM_vector.o: ./BioFVM/BioFVM_vector.cpp
-	$(COMPILE_COMMAND) -c ./BioFVM/BioFVM_vector.cpp 
+	$(ACC_COMPILE_COMMAND) -c ./BioFVM/BioFVM_vector.cpp 
 
 BioFVM_agent_container.o: ./BioFVM/BioFVM_agent_container.cpp
-	$(COMPILE_COMMAND) -c ./BioFVM/BioFVM_agent_container.cpp 
+	$(ACC_COMPILE_COMMAND) -c ./BioFVM/BioFVM_agent_container.cpp 
 	
 BioFVM_mesh.o: ./BioFVM/BioFVM_mesh.cpp
-	$(COMPILE_COMMAND) -c ./BioFVM/BioFVM_mesh.cpp 
+	$(ACC_COMPILE_COMMAND) -c ./BioFVM/BioFVM_mesh.cpp 
 
 BioFVM_microenvironment.o: ./BioFVM/BioFVM_microenvironment.cpp
-	$(COMPILE_COMMAND) -c ./BioFVM/BioFVM_microenvironment.cpp 
+	$(ACC_COMPILE_COMMAND) -c ./BioFVM/BioFVM_microenvironment.cpp 
 
 BioFVM_solvers.o: ./BioFVM/BioFVM_solvers.cpp
-	$(COMPILE_COMMAND) -c ./BioFVM/BioFVM_solvers.cpp 
+	$(ACC_COMPILE_COMMAND) -c ./BioFVM/BioFVM_solvers.cpp 
 
 BioFVM_utilities.o: ./BioFVM/BioFVM_utilities.cpp
-	$(COMPILE_COMMAND) -c ./BioFVM/BioFVM_utilities.cpp 
+	$(ACC_COMPILE_COMMAND) -c ./BioFVM/BioFVM_utilities.cpp 
 	
 BioFVM_basic_agent.o: ./BioFVM/BioFVM_basic_agent.cpp
-	$(COMPILE_COMMAND) -c ./BioFVM/BioFVM_basic_agent.cpp 
+	$(ACC_COMPILE_COMMAND) -c ./BioFVM/BioFVM_basic_agent.cpp 
 	
 BioFVM_matlab.o: ./BioFVM/BioFVM_matlab.cpp
-	$(COMPILE_COMMAND) -c ./BioFVM/BioFVM_matlab.cpp
+	$(ACC_COMPILE_COMMAND) -c ./BioFVM/BioFVM_matlab.cpp
 
 BioFVM_MultiCellDS.o: ./BioFVM/BioFVM_MultiCellDS.cpp
-	$(COMPILE_COMMAND) -c ./BioFVM/BioFVM_MultiCellDS.cpp
+	$(ACC_COMPILE_COMMAND) -c ./BioFVM/BioFVM_MultiCellDS.cpp
 	
 pugixml.o: ./BioFVM/pugixml.cpp
-	$(COMPILE_COMMAND) -c ./BioFVM/pugixml.cpp
+	$(ACC_COMPILE_COMMAND) -c ./BioFVM/pugixml.cpp
 	
 # standard PhysiCell modules
 

@@ -596,6 +596,7 @@ void Cartesian_Mesh::create_moore_neighborhood()
 		}
 	}
 }
+#pragma acc routine
 unsigned int Cartesian_Mesh::voxel_index( unsigned int i, unsigned int j, unsigned int k )
 {
  return ( k*y_coordinates.size() + j )*x_coordinates.size() + i; 

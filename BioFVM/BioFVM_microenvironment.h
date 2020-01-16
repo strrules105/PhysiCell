@@ -80,7 +80,8 @@ class Microenvironment
 
 	
 	/*! stores pointer to current density solutions. Access via operator() functions. */ 
-	std::vector< std::vector<double> >* p_density_vectors; 
+	//std::vector< std::vector<double> >* p_density_vectors;
+	// commenting out because PGI complains when its private
 	
 	std::vector< std::vector<gradient> > gradient_vectors; 
 	std::vector<bool> gradient_vector_computed; 
@@ -128,7 +129,57 @@ class Microenvironment
 	std::vector< std::vector<double> > dirichlet_value_vectors; 
 	std::vector<bool> dirichlet_activation_vector; 	
  public:
-	
+
+	std::vector< std::vector<double> >* p_density_vectors; // must be public for PGI Compiler
+
+	/* variables for GPU  */
+	bool openacc_data_bool; // bool for openacc data transfer
+	double ** gpu_p_density_vectors; // gpu copy of p_density_vectors
+	double ** gpu_thomas_denomx; // gpu copy of thomas_denomx
+	double ** gpu_thomas_denomy; // gpu copy of thomas_denomy
+	double ** gpu_thomas_denomz; // gpu copy of thomas_denomz
+	double * gpu_thomas_constant1; // gpu copy of thomas_constant1
+	int * gpu_thomas_i_jump; // gpu copy of thomas_i_jump
+	int * gpu_thomas_j_jump; // gpu copy of thomas_j_jump
+	int * gpu_thomas_k_jump; // gpu copy of thomas_k_jump
+	double ** gpu_thomas_cx; // gpu copy of thomas_cx
+	double ** gpu_thomas_cy; // gpu copy of thomas_cy
+	double ** gpu_thomas_cz; // gpu copy of thomas_cz
+	double ** gpu_dirichlet_value_vectors; // gpu copy of dirichlet_value_vectors
+	bool * gpu_dirichlet_activation_vector; //gpu copy of dirichlet_activation_vector
+	bool * gpu_voxels_is_dirichlet; //mesh.voxels[iteration].is_Dirichlet value copy, mesh size
+	int * sizes_p_density_vectors;
+	int * sizes_thomas_denomx;
+	int * sizes_thomas_denomy;
+	int * sizes_thomas_denomz;
+	int * sizes_thomas_cx;
+	int * sizes_thomas_cy;
+	int * sizes_thomas_cz;
+	int * sizes_dirichlet_value_vectors;
+	int sizes_thomas_constant1;
+
+	/* functions for GPU  */
+	void axpy_acc( double* y, double* a, double* x, int size ); //added size to axpy, passes in size of the first array for ease
+	void naxpy_acc( double* y, double* a, double* x, int size ); //added size to naxpy, passes in size of the first array for ease
+
+	void transfer_2D();
+	void transfer_3D();
+
+	void translate_vector_to_array();
+	void translate_array_to_vector();
+
+	void apply_dirichlet_conditions_GPU(void);
+	void x_diffusion_GPU_2D();
+	void y_diffusion_GPU_2D();
+
+	void x_diffusion_GPU_3D();
+	void y_diffusion_GPU_3D();
+	void z_diffusion_GPU_3D();
+
+	int get_size_p1(); // gets the size of p_density_vectors
+	int get_size_p2(); // gets the size of p_density_vectors[0] = 3
+
+
 	/*! The mesh for the diffusing quantities */ 
 	Cartesian_Mesh mesh;
 	Agent_Container * agent_container;	
@@ -183,7 +234,8 @@ class Microenvironment
 	void set_density( int index , std::string name , std::string units , double diffusion_constant , double decay_rate ); 
 
 	int find_density_index( std::string name ); 
-	
+
+	#pragma acc routine
 	int voxel_index( int i, int j, int k ); 
 	std::vector<unsigned int> cartesian_indices( int n ); 
 	
@@ -247,6 +299,10 @@ class Microenvironment
 
 	friend void diffusion_decay_solver__constant_coefficients_LOD_3D( Microenvironment& S, double dt ); 
 	friend void diffusion_decay_solver__constant_coefficients_LOD_2D( Microenvironment& S, double dt ); 
+	
+	// GPU functions
+	friend void diffusion_decay_solver__constant_coefficients_LOD_3D_GPU( Microenvironment& S, double dt ); 
+	friend void diffusion_decay_solver__constant_coefficients_LOD_2D_GPU( Microenvironment& S, double dt ); 
 	
 	friend void diffusion_decay_explicit_uniform_rates( Microenvironment& M, double dt );
 	

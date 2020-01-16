@@ -52,6 +52,7 @@
 #include <cmath>
 
 #include "BioFVM_basic_agent.h"
+#include "openacc.h"
 
 namespace BioFVM{
 
@@ -119,6 +120,8 @@ Microenvironment::Microenvironment()
 	diffusion_decay_solver = diffusion_decay_solver__constant_coefficients_LOD_3D; 
 
 	mesh.resize(1,1,1); 
+
+	openacc_data_bool = false; // GPU init
 	
 	one.resize( 1 , 1.0 ); 
 	zero.resize( 1 , 0.0 );
@@ -643,6 +646,7 @@ void Microenvironment::set_density( int index , std::string name , std::string u
 	return; 
 }
 
+#pragma acc routine
 int Microenvironment::voxel_index( int i, int j, int k )
 { return mesh.voxel_index(i,j,k) ; }
 
@@ -1195,6 +1199,693 @@ void initialize_microenvironment( void )
 	
 	microenvironment.display_information( std::cout );
 	return;
+}
+
+int Microenvironment::get_size_p1()
+{
+	return (*p_density_vectors).size();
+}
+
+int Microenvironment::get_size_p2()
+{
+	return (*p_density_vectors)[0].size();
+}
+
+void Microenvironment::transfer_2D()
+{
+	// start gpu_p_density_vectors
+	const int bin_p_density_vectors = (*p_density_vectors).size();
+
+	gpu_p_density_vectors = new double*[bin_p_density_vectors];
+
+	sizes_p_density_vectors = new int[bin_p_density_vectors];
+	#pragma acc enter data copyin(this[0:1])
+	#pragma acc enter data create(this->gpu_p_density_vectors[0:bin_p_density_vectors][0:0])
+
+	for (int i = 0; i < bin_p_density_vectors; i++){
+		int sze = (*p_density_vectors)[i].size();
+		sizes_p_density_vectors[i] = sze;
+		gpu_p_density_vectors[i] = (*p_density_vectors)[i].data();
+		#pragma acc enter data copyin(this->gpu_p_density_vectors[i:1][:sze])
+	}
+	#pragma acc enter data copyin(this->sizes_p_density_vectors[:bin_p_density_vectors])
+	// end gpu_p_density_vectors
+
+	// start gpu_thomas_constant1
+	const int bin_thomas_constant1 = thomas_constant1.size();
+
+	gpu_thomas_constant1 = new double [bin_thomas_constant1];
+
+	sizes_thomas_constant1 = bin_thomas_constant1;
+	#pragma acc enter data create(this->gpu_thomas_constant1[0:bin_thomas_constant1])
+
+		//gpu_thomas_constant1[e] = thomas_constant1.at(e);
+		gpu_thomas_constant1 = thomas_constant1.data();
+
+	#pragma acc enter data copyin(this->gpu_thomas_constant1[:bin_thomas_constant1])
+	#pragma acc enter data copyin(this->sizes_thomas_constant1)
+	// end gpu_thomas_constant1
+	
+	// start gpu_thomas_denomx
+	const int bin_thomas_denomx = thomas_denomx.size();
+
+	gpu_thomas_denomx = new double * [bin_thomas_denomx];
+
+	sizes_thomas_denomx = new int [bin_thomas_denomx];
+
+	#pragma acc enter data create(this->gpu_thomas_denomx[0:bin_thomas_denomx][0:0])
+	for (int i = 0; i < bin_thomas_denomx; i ++) {
+		int sze = thomas_denomx[i].size();
+		gpu_thomas_denomx[i] = thomas_denomx[i].data();
+		#pragma acc enter data copyin(this->gpu_thomas_denomx[i:1][:sze])
+	}	
+	// pragma acc enter data sizes
+	// end gpu_thomas_denomx
+	
+	// start gpu_thomas_denomy
+	const int bin_thomas_denomy = thomas_denomy.size();
+
+	gpu_thomas_denomy = new double * [bin_thomas_denomy];
+
+	sizes_thomas_denomy = new int [bin_thomas_denomy];
+
+	#pragma acc enter data create(this->gpu_thomas_denomy[0:bin_thomas_denomy][0:0])
+	for (int i = 0; i < bin_thomas_denomy; i ++) {
+		int sze = thomas_denomy[i].size();
+		gpu_thomas_denomy[i] = thomas_denomy[i].data();
+		#pragma acc enter data copyin(this->gpu_thomas_denomy[i:1][:sze])
+	}	
+	// pragma acc enter data sizes
+	// end gpu_thomas_denomy
+	
+	// start gpu_thomas_i_jump
+	gpu_thomas_i_jump = new int;
+
+	*gpu_thomas_i_jump = thomas_i_jump;
+
+	#pragma acc enter data copyin(this->gpu_thomas_i_jump)
+	// end gpu_thomas_i_jump
+	
+	// start gpu_thomas_j_jump
+	gpu_thomas_j_jump = new int;
+
+	*gpu_thomas_j_jump = thomas_j_jump;
+
+	#pragma acc enter data copyin(this->gpu_thomas_j_jump)
+	// end gpu_thomas_j_jump
+	
+	// start gpu_thomas_cx
+	const int bin_thomas_cx = thomas_cx.size();
+
+	gpu_thomas_cx = new double * [bin_thomas_cx];
+
+	sizes_thomas_cx = new int [bin_thomas_cx];
+
+	#pragma acc enter data create(this->gpu_thomas_cx[0:bin_thomas_cx][0:0])
+	for (int i = 0; i < bin_thomas_cx; i ++) {
+		int sze = thomas_cx[i].size();
+		gpu_thomas_cx[i] = thomas_cx[i].data();
+		#pragma acc enter data copyin(this->gpu_thomas_cx[i:1][:sze])
+	}
+	// end gpu_thomas_cx
+	
+	// start gpu_thomas_cy
+	const int bin_thomas_cy = thomas_cy.size();
+
+	gpu_thomas_cy = new double * [bin_thomas_cy];
+
+	sizes_thomas_cy = new int [bin_thomas_cy];
+
+	#pragma acc enter data create(this->gpu_thomas_cy[0:bin_thomas_cy][0:0])
+	for (int i = 0; i < bin_thomas_cy; i ++) {
+		int sze = thomas_cy[i].size();
+		gpu_thomas_cy[i] = thomas_cy[i].data();
+		#pragma acc enter data copyin(this->gpu_thomas_cy[i:1][:sze])
+	}
+	// end gpu_thomas_cy
+	
+	// start gpu_dirichlet_value_vectors
+	const int bin_dirichlet_value_vectors = dirichlet_value_vectors.size();
+
+	gpu_dirichlet_value_vectors = new double * [bin_dirichlet_value_vectors];
+
+	sizes_dirichlet_value_vectors = new int [bin_dirichlet_value_vectors];
+
+	#pragma acc enter data create(this->gpu_dirichlet_value_vectors[0:bin_dirichlet_value_vectors][0:0])
+	for (int i = 0; i < bin_dirichlet_value_vectors; i++) {
+		int sze = dirichlet_value_vectors[i].size();
+		sizes_dirichlet_value_vectors[i] = sze;
+		gpu_dirichlet_value_vectors[i] = dirichlet_value_vectors[i].data();
+		#pragma acc enter data copyin(this->gpu_dirichlet_value_vectors[i:1][:sze])
+	}	
+	#pragma acc enter data copyin(this->sizes_dirichlet_value_vectors[:bin_dirichlet_value_vectors])
+	// end gpu_dirichlet_value_vectors
+	
+	// start gpu_dirichlet_activation_vector
+	const int bin_dirichlet_activation_vector = dirichlet_activation_vector.size();
+
+	gpu_dirichlet_activation_vector = new bool [bin_dirichlet_activation_vector];
+
+	#pragma acc enter data create(this->gpu_dirichlet_activation_vector[0:bin_dirichlet_activation_vector])
+	for (int i = 0; i < bin_dirichlet_activation_vector; i++) {
+		gpu_dirichlet_activation_vector[i] = dirichlet_activation_vector.at(i);
+	}
+/*
+ *potential error here, move copyin to inside interation?
+ */
+	#pragma acc enter data copyin(this->gpu_dirichlet_activation_vector[:bin_dirichlet_activation_vector])
+	// end gpu_dirichlet_activation_vector
+	
+	// start gpu_voxel_is_dirichlet
+	const int bin_mesh = mesh.voxels.size();
+
+	gpu_voxels_is_dirichlet = new bool [bin_mesh];
+
+	#pragma acc enter data create(this->gpu_voxels_is_dirichlet[0:bin_mesh])
+	for (int i = 0; i < bin_mesh; i ++) {
+		gpu_voxels_is_dirichlet[i] = mesh.voxels[i].is_Dirichlet;
+	}
+	#pragma acc enter data copyin(this->gpu_voxels_is_dirichlet[:bin_mesh])
+	// end gpu_voxel_is_dirichlet
+
+	std::cout << "Done transfer" << std::endl;
+}
+
+void Microenvironment::transfer_3D()
+{
+	// start gpu_p_density_vectors
+	const int bin_p_density_vectors = (*p_density_vectors).size();
+
+	gpu_p_density_vectors = new double*[bin_p_density_vectors];
+
+	sizes_p_density_vectors = new int[bin_p_density_vectors];
+	#pragma acc enter data copyin(this[0:1])
+	#pragma acc enter data create(this->gpu_p_density_vectors[0:bin_p_density_vectors][0:0])
+
+	for (int i = 0; i < bin_p_density_vectors; i++){
+		int sze = (*p_density_vectors)[i].size();
+		sizes_p_density_vectors[i] = sze;
+		gpu_p_density_vectors[i] = (*p_density_vectors)[i].data();
+		#pragma acc enter data copyin(this->gpu_p_density_vectors[i:1][:sze])
+	}
+	#pragma acc enter data copyin(this->sizes_p_density_vectors[:bin_p_density_vectors])
+	// end gpu_p_density_vectors
+
+	// start gpu_thomas_constant1
+	const int bin_thomas_constant1 = thomas_constant1.size();
+
+	gpu_thomas_constant1 = new double [bin_thomas_constant1];
+
+	sizes_thomas_constant1 = bin_thomas_constant1;
+	#pragma acc enter data create(this->gpu_thomas_constant1[0:bin_thomas_constant1])
+
+		//gpu_thomas_constant1[e] = thomas_constant1.at(e);
+		gpu_thomas_constant1 = thomas_constant1.data();
+
+	#pragma acc enter data copyin(this->gpu_thomas_constant1[:bin_thomas_constant1])
+	#pragma acc enter data copyin(this->sizes_thomas_constant1)
+	// end gpu_thomas_constant1
+	
+	// start gpu_thomas_denomx
+	const int bin_thomas_denomx = thomas_denomx.size();
+
+	gpu_thomas_denomx = new double * [bin_thomas_denomx];
+
+	sizes_thomas_denomx = new int [bin_thomas_denomx];
+
+	#pragma acc enter data create(this->gpu_thomas_denomx[0:bin_thomas_denomx][0:0])
+	for (int i = 0; i < bin_thomas_denomx; i ++) {
+		int sze = thomas_denomx[i].size();
+		gpu_thomas_denomx[i] = thomas_denomx[i].data();
+		#pragma acc enter data copyin(this->gpu_thomas_denomx[i:1][:sze])
+	}	
+	// pragma acc enter data sizes
+	// end gpu_thomas_denomx
+	
+	// start gpu_thomas_denomy
+	const int bin_thomas_denomy = thomas_denomy.size();
+
+	gpu_thomas_denomy = new double * [bin_thomas_denomy];
+
+	sizes_thomas_denomy = new int [bin_thomas_denomy];
+
+	#pragma acc enter data create(this->gpu_thomas_denomy[0:bin_thomas_denomy][0:0])
+	for (int i = 0; i < bin_thomas_denomy; i ++) {
+		int sze = thomas_denomy[i].size();
+		gpu_thomas_denomy[i] = thomas_denomy[i].data();
+		#pragma acc enter data copyin(this->gpu_thomas_denomy[i:1][:sze])
+	}	
+	// pragma acc enter data sizes
+	// end gpu_thomas_denomy
+
+	// start gpu_thomas_denomz
+	const int bin_thomas_denomz = thomas_denomz.size();
+
+	gpu_thomas_denomz = new double * [bin_thomas_denomz];
+
+	sizes_thomas_denomz = new int [bin_thomas_denomz];
+
+	#pragma acc enter data create(this->gpu_thomas_denomz[0:bin_thomas_denomz][0:0])
+	for (int i = 0; i < bin_thomas_denomz; i ++) {
+		int sze = thomas_denomz[i].size();
+		gpu_thomas_denomz[i] = thomas_denomz[i].data();
+		#pragma acc enter data copyin(this->gpu_thomas_denomz[i:1][:sze])
+	}	
+	// pragma acc enter data sizes
+	// end gpu_thomas_denomz
+	
+	// start gpu_thomas_i_jump
+	gpu_thomas_i_jump = new int;
+
+	*gpu_thomas_i_jump = thomas_i_jump;
+
+	#pragma acc enter data copyin(this->gpu_thomas_i_jump)
+	// end gpu_thomas_i_jump
+	
+	// start gpu_thomas_j_jump
+	gpu_thomas_j_jump = new int;
+
+	*gpu_thomas_j_jump = thomas_j_jump;
+
+	#pragma acc enter data copyin(this->gpu_thomas_j_jump)
+	// end gpu_thomas_j_jump
+	
+	// start gpu_thomas_k_jump
+	gpu_thomas_k_jump = new int;
+
+	*gpu_thomas_k_jump = thomas_k_jump;
+
+	#pragma acc enter data copyin(this->gpu_thomas_k_jump)
+	// end gpu_thomas_k_jump
+
+	// start gpu_thomas_cx
+	const int bin_thomas_cx = thomas_cx.size();
+
+	gpu_thomas_cx = new double * [bin_thomas_cx];
+
+	sizes_thomas_cx = new int [bin_thomas_cx];
+
+	#pragma acc enter data create(this->gpu_thomas_cx[0:bin_thomas_cx][0:0])
+	for (int i = 0; i < bin_thomas_cx; i ++) {
+		int sze = thomas_cx[i].size();
+		gpu_thomas_cx[i] = thomas_cx[i].data();
+		#pragma acc enter data copyin(this->gpu_thomas_cx[i:1][:sze])
+	}
+	// end gpu_thomas_cx
+	
+	// start gpu_thomas_cy
+	const int bin_thomas_cy = thomas_cy.size();
+
+	gpu_thomas_cy = new double * [bin_thomas_cy];
+
+	sizes_thomas_cy = new int [bin_thomas_cy];
+
+	#pragma acc enter data create(this->gpu_thomas_cy[0:bin_thomas_cy][0:0])
+	for (int i = 0; i < bin_thomas_cy; i ++) {
+		int sze = thomas_cy[i].size();
+		gpu_thomas_cy[i] = thomas_cy[i].data();
+		#pragma acc enter data copyin(this->gpu_thomas_cy[i:1][:sze])
+	}
+	// end gpu_thomas_cy
+	
+	// start gpu_thomas_cz
+	const int bin_thomas_cz = thomas_cz.size();
+
+	gpu_thomas_cz = new double * [bin_thomas_cz];
+
+	sizes_thomas_cz = new int [bin_thomas_cz];
+
+	#pragma acc enter data create(this->gpu_thomas_cz[0:bin_thomas_cz][0:0])
+	for (int i = 0; i < bin_thomas_cz; i ++) {
+		int sze = thomas_cz[i].size();
+		gpu_thomas_cz[i] = thomas_cz[i].data();
+		#pragma acc enter data copyin(this->gpu_thomas_cz[i:1][:sze])
+	}
+	// end gpu_thomas_cz
+
+	// start gpu_dirichlet_value_vectors
+	const int bin_dirichlet_value_vectors = dirichlet_value_vectors.size();
+
+	gpu_dirichlet_value_vectors = new double * [bin_dirichlet_value_vectors];
+
+	sizes_dirichlet_value_vectors = new int [bin_dirichlet_value_vectors];
+
+	#pragma acc enter data create(this->gpu_dirichlet_value_vectors[0:bin_dirichlet_value_vectors][0:0])
+	for (int i = 0; i < bin_dirichlet_value_vectors; i++) {
+		int sze = dirichlet_value_vectors[i].size();
+		sizes_dirichlet_value_vectors[i] = sze;
+		gpu_dirichlet_value_vectors[i] = dirichlet_value_vectors[i].data();
+		#pragma acc enter data copyin(this->gpu_dirichlet_value_vectors[i:1][:sze])
+	}	
+	#pragma acc enter data copyin(this->sizes_dirichlet_value_vectors[:bin_dirichlet_value_vectors])
+	// end gpu_dirichlet_value_vectors
+	
+	// start gpu_dirichlet_activation_vector
+	const int bin_dirichlet_activation_vector = dirichlet_activation_vector.size();
+
+	gpu_dirichlet_activation_vector = new bool [bin_dirichlet_activation_vector];
+
+	#pragma acc enter data create(this->gpu_dirichlet_activation_vector[0:bin_dirichlet_activation_vector])
+	for (int i = 0; i < bin_dirichlet_activation_vector; i++) {
+		gpu_dirichlet_activation_vector[i] = dirichlet_activation_vector.at(i);
+	}
+		/*
+ 		*potential error here, move copyin to inside interation?
+ 		*/
+	#pragma acc enter data copyin(this->gpu_dirichlet_activation_vector[:bin_dirichlet_activation_vector])
+	// end gpu_dirichlet_activation_vector
+	
+	// start gpu_voxel_is_dirichlet
+	const int bin_mesh = mesh.voxels.size();
+
+	gpu_voxels_is_dirichlet = new bool [bin_mesh];
+
+	#pragma acc enter data create(this->gpu_voxels_is_dirichlet[0:bin_mesh])
+	for (int i = 0; i < bin_mesh; i ++) {
+		gpu_voxels_is_dirichlet[i] = mesh.voxels[i].is_Dirichlet;
+	}
+	#pragma acc enter data copyin(this->gpu_voxels_is_dirichlet[:bin_mesh])
+	// end gpu_voxel_is_dirichlet
+
+	std::cout << "Done transfer" << std::endl;
+}
+
+#pragma acc routine
+void Microenvironment::axpy_acc( double* y, double* a , double* x, int size )
+{
+// #pragma acc parallel loop
+ for( int i=0; i < size ; i++ )
+ {
+  y[i] += a[i] * x[i] ; 
+ }
+ return; 
+}
+
+#pragma acc routine
+void Microenvironment::naxpy_acc( double* y, double* a , double* x, int size )
+{
+// #pragma acc parallel loop
+ for( int i=0; i < size ; i++ )
+ {
+  y[i] -= a[i] * x[i] ; 
+ }
+ return; 
+}
+
+void Microenvironment::apply_dirichlet_conditions_GPU( void ) {
+	int mesh_size = mesh.voxels.size();
+
+	#pragma acc parallel loop present(gpu_p_density_vectors, gpu_dirichlet_value_vectors, sizes_dirichlet_value_vectors, gpu_dirichlet_activation_vector, gpu_voxels_is_dirichlet)
+	for (int i = 0; i < mesh_size; i ++){
+		//if (mesh.voxels[i].is_Dirichlet == true){
+		if (gpu_voxels_is_dirichlet[i] == true){
+			for (int j = 0; j < sizes_dirichlet_value_vectors[i]; j++) {
+				if ( gpu_dirichlet_activation_vector[j] == true) {
+					gpu_p_density_vectors[i][j] = gpu_dirichlet_value_vectors[i][j];
+				}
+			}
+		}
+	}	
+
+	return;
+}
+
+// X-Diffusion GPU for 2D
+void Microenvironment::x_diffusion_GPU_2D(){
+
+	int x_size = mesh.x_coordinates.size();
+	int y_size = mesh.y_coordinates.size();
+
+	#pragma acc parallel loop present(gpu_p_density_vectors, sizes_p_density_vectors, gpu_thomas_denomx, gpu_thomas_i_jump, gpu_thomas_cx) 
+	for ( int j=0; j < y_size ; j++ ) {
+		int n = voxel_index(0, j, 0);
+		#pragma acc loop seq 
+		for (int q = 0; q < sizes_p_density_vectors[n]; q++)
+			{ gpu_p_density_vectors[n][q] /= gpu_thomas_denomx[0][q];}
+		n += *gpu_thomas_i_jump;
+		#pragma acc loop seq
+		for (int i=1; i < x_size ; i++) {
+			axpy_acc(gpu_p_density_vectors[n], gpu_thomas_constant1, gpu_p_density_vectors[n-*gpu_thomas_i_jump], sizes_p_density_vectors[n]);
+			/*
+			#pragma acc loop seq
+			for (int k = 0; k < 3; k++) {
+				gpu_p_density_vectors[n][k] += gpu_thomas_constant1[k] * gpu_p_density_vectors[n- (*gpu_thomas_i_jump)][k];
+			}
+			*/
+			#pragma acc loop seq
+			for (int q = 0; q < sizes_p_density_vectors[n]; q++)
+				{ gpu_p_density_vectors[n][q] /= gpu_thomas_denomx[i][q]; }
+
+			n += *gpu_thomas_i_jump;
+		}
+
+		// back substitution
+		n = voxel_index(x_size-2, j, 0);
+		#pragma acc loop seq
+		for (int i = x_size-2 ; i >= 0 ; i--) {
+			naxpy_acc(gpu_p_density_vectors[n], gpu_thomas_cx[i], gpu_p_density_vectors[n+*gpu_thomas_i_jump], sizes_p_density_vectors[n]);
+			/*
+			#pragma acc loop seq
+			for (int k = 0; k < 3; k++) {
+				gpu_p_density_vectors[n][k] -= gpu_thomas_cx[i][k] * gpu_p_density_vectors[n+ (*gpu_thomas_i_jump)][k];
+			}
+			*/
+			n -= *gpu_thomas_i_jump;
+		}
+	}
+//	std::cout << "Done x_diffusion_acc" << std::endl;
+
+}
+// end X-Diffusion GPU for 2D
+
+// Y-Diffusion GPU for 2D
+void Microenvironment::y_diffusion_GPU_2D(){
+
+	int x_size = mesh.x_coordinates.size();
+	int y_size = mesh.y_coordinates.size();
+
+	#pragma acc parallel loop present(gpu_p_density_vectors, sizes_p_density_vectors, gpu_thomas_denomy, gpu_thomas_j_jump, gpu_thomas_cy) 
+	for ( int i=0; i < x_size ; i++ ) {
+		int n = voxel_index(i, 0, 0);
+		#pragma acc loop seq 
+		for (int q = 0; q < sizes_p_density_vectors[n]; q++)
+			{ gpu_p_density_vectors[n][q] /= gpu_thomas_denomy[0][q];}
+		n += *gpu_thomas_j_jump;
+		#pragma acc loop seq
+		for (int j=1; j < y_size ; j++) {
+			axpy_acc(gpu_p_density_vectors[n], gpu_thomas_constant1, gpu_p_density_vectors[n-*gpu_thomas_j_jump], sizes_p_density_vectors[n]);
+			/*
+			#pragma acc loop seq
+			for (int k = 0; k < 3; k++) {
+				gpu_p_density_vectors[n][k] += gpu_thomas_constant1[k] * gpu_p_density_vectors[n- (*gpu_thomas_i_jump)][k];
+			}
+			*/
+			#pragma acc loop seq
+			for (int q = 0; q < sizes_p_density_vectors[n]; q++)
+				{ gpu_p_density_vectors[n][q] /= gpu_thomas_denomy[j][q]; }
+
+			n += *gpu_thomas_j_jump;
+		}
+
+		// back substitution
+		n = voxel_index(i, y_size-2, 0);
+		#pragma acc loop seq
+		for (int j = y_size-2 ; j >= 0 ; j--) {
+			naxpy_acc(gpu_p_density_vectors[n], gpu_thomas_cy[j], gpu_p_density_vectors[n+*gpu_thomas_j_jump], sizes_p_density_vectors[n]);
+			/*
+			#pragma acc loop seq
+			for (int k = 0; k < 3; k++) {
+				gpu_p_density_vectors[n][k] -= gpu_thomas_cx[i][k] * gpu_p_density_vectors[n+ (*gpu_thomas_i_jump)][k];
+			}
+			*/
+			n -= *gpu_thomas_j_jump;
+		}
+	}
+//	std::cout << "Done y_diffusion_acc" << std::endl;
+
+}
+// end Y-Diffusion GPU for 2D
+
+// X-Diffusion GPU for 3D
+void Microenvironment::x_diffusion_GPU_3D(){
+
+	int x_size = mesh.x_coordinates.size();
+	int y_size = mesh.y_coordinates.size();
+	int z_size = mesh.z_coordinates.size();
+
+	#pragma acc parallel loop present(gpu_p_density_vectors, sizes_p_density_vectors, gpu_thomas_denomx, gpu_thomas_i_jump, gpu_thomas_cx) 
+	for ( int k= 0; k < z_size; k++ )
+	{
+		for ( int j=0; j < y_size ; j++ ) 
+		{
+			int n = voxel_index(0, j, k);
+///			#pragma acc loop seq 
+//			#pragma acc parallel loop
+			for (int q = 0; q < sizes_p_density_vectors[n]; q++)
+				{ gpu_p_density_vectors[n][q] /= gpu_thomas_denomx[0][q];}
+
+///			#pragma acc loop seq
+//			#pragma acc parallel loop
+			for (int i=1; i < x_size ; i++) 
+			{
+				n = voxel_index(i, j, k);
+				axpy_acc(gpu_p_density_vectors[n], gpu_thomas_constant1, gpu_p_density_vectors[n-*gpu_thomas_i_jump], sizes_p_density_vectors[n]);
+///				#pragma acc loop seq
+//				#pragma acc parallel loop
+			 	for (int q = 0; q < sizes_p_density_vectors[n]; q++)
+					{ gpu_p_density_vectors[n][q] /= gpu_thomas_denomx[i][q]; }
+	
+			}
+	
+			// back substitution
+			// n = voxel_index(x_size-2, j, 0);
+///			#pragma acc loop seq
+//			#pragma acc parallel loop
+			for (int i = x_size-2 ; i >= 0 ; i--) 
+			{
+				n = voxel_index(i, j, k);
+				naxpy_acc(gpu_p_density_vectors[n], gpu_thomas_cx[i], gpu_p_density_vectors[n+*gpu_thomas_i_jump], sizes_p_density_vectors[n]);
+			}
+		}
+	}
+//	std::cout << "Done x_diffusion_acc" << std::endl;
+
+}
+// end X-Diffusion GPU for 3D
+
+// Y-Diffusion GPU for 3D
+void Microenvironment::y_diffusion_GPU_3D(){
+
+	int x_size = mesh.x_coordinates.size();
+	int y_size = mesh.y_coordinates.size();
+	int z_size = mesh.z_coordinates.size();
+
+	#pragma acc parallel loop present(gpu_p_density_vectors, sizes_p_density_vectors, gpu_thomas_denomy, gpu_thomas_j_jump, gpu_thomas_cy) 
+	for ( int k= 0; k < z_size; k++ )
+	{
+		for ( int i=0; i < x_size ; i++ ) 
+		{
+			int n = voxel_index(i, 0, k);
+///			#pragma acc loop seq 
+//			#pragma acc parallel loop
+			for (int q = 0; q < sizes_p_density_vectors[n]; q++)
+				{ gpu_p_density_vectors[n][q] /= gpu_thomas_denomy[0][q];}
+
+///			#pragma acc loop seq
+//			#pragma acc parallel loop
+			for (int j=1; j < y_size ; j++) 
+			{
+				n = voxel_index(i, j, k);
+				axpy_acc(gpu_p_density_vectors[n], gpu_thomas_constant1, gpu_p_density_vectors[n-*gpu_thomas_j_jump], sizes_p_density_vectors[n]);
+///				#pragma acc loop seq
+//				#pragma acc parallel loop
+				for (int q = 0; q < sizes_p_density_vectors[n]; q++)
+					{ gpu_p_density_vectors[n][q] /= gpu_thomas_denomy[j][q]; }
+	
+			}
+	
+			// back substitution
+			// n = voxel_index(x_size-2, j, k);
+///			#pragma acc loop seq
+//			#pragma acc parallel loop
+			for (int j = y_size-2 ; j >= 0 ; j--) 
+			{
+				n = voxel_index(i, j, k);
+				naxpy_acc(gpu_p_density_vectors[n], gpu_thomas_cy[j], gpu_p_density_vectors[n+*gpu_thomas_j_jump], sizes_p_density_vectors[n]);
+			}
+		}
+	}
+//	std::cout << "Done y_diffusion_acc" << std::endl;
+
+}
+// end Y-Diffusion GPU for 3D
+
+// Z-Diffusion GPU for 3D
+void Microenvironment::z_diffusion_GPU_3D(){
+
+	int x_size = mesh.x_coordinates.size();
+	int y_size = mesh.y_coordinates.size();
+	int z_size = mesh.z_coordinates.size();
+
+	#pragma acc parallel loop present(gpu_p_density_vectors, sizes_p_density_vectors, gpu_thomas_denomz, gpu_thomas_k_jump, gpu_thomas_cz) 
+	for ( int j= 0; j < y_size; j++ )
+	{
+		for ( int i=0; i < x_size ; i++ ) 
+		{
+			int n = voxel_index(i, j, 0);
+///			#pragma acc loop seq 
+//			#pragma acc parallel loop
+			for (int q = 0; q < sizes_p_density_vectors[n]; q++)
+				{ gpu_p_density_vectors[n][q] /= gpu_thomas_denomz[0][q];}
+
+///			#pragma acc loop seq
+//			#pragma acc parallel loop
+			for (int k=1; k < z_size ; k++) 
+			{
+				n = voxel_index(i, j, k);
+				axpy_acc(gpu_p_density_vectors[n], gpu_thomas_constant1, gpu_p_density_vectors[n-*gpu_thomas_k_jump], sizes_p_density_vectors[n]);
+///				#pragma acc loop seq
+//				#pragma acc parallel loop
+				for (int q = 0; q < sizes_p_density_vectors[n]; q++)
+					{ gpu_p_density_vectors[n][q] /= gpu_thomas_denomz[k][q]; }
+	
+			}
+	
+			// back substitution
+			// n = voxel_index(x_size-2, j, k);
+///			#pragma acc loop seq
+//			#pragma acc parallel loop
+			for (int k = z_size-2 ; k >= 0 ; k--) 
+			{
+				n = voxel_index(i, j, k);
+				naxpy_acc(gpu_p_density_vectors[n], gpu_thomas_cz[k], gpu_p_density_vectors[n+*gpu_thomas_k_jump], sizes_p_density_vectors[n]);
+			}
+		}
+	}
+//	std::cout << "Done x_diffusion_acc" << std::endl;
+
+}
+// end Z-Diffusion GPU for 3D
+
+void Microenvironment::translate_vector_to_array()
+	/* translate_vector_to_array is actually an update between the two versions
+	 * of p_density_vector (DEVICE = gpu_p_density_vector, HOST = p_density_vector),
+	 * updating the device with the current values of the 
+	 * host p_density_vector
+	 */
+{
+	const int bin_p_density_vectors = (*p_density_vectors).size();
+
+	for (int i = 0; i < bin_p_density_vectors; i++){
+		int sze = (*p_density_vectors)[i].size();
+		sizes_p_density_vectors[i] = sze;
+		gpu_p_density_vectors[i] = (*p_density_vectors)[i].data();
+		#pragma acc update device(this->gpu_p_density_vectors[i:1][:sze])
+	}
+	#pragma acc update device(this->sizes_p_density_vectors[:bin_p_density_vectors])
+	
+}
+
+void Microenvironment::translate_array_to_vector()
+	/* translate_array_to_vector is actually an update between the two versions
+	 * of p_density_vector (DEVICE = gpu_p_density_vector, HOST = p_density_vector),
+	 * updating the host with the current values of the 
+	 * device gpu_p_density_vector
+	 */
+{
+	const int bin_p_density_vectors = (*p_density_vectors).size();
+
+	for (int i = 0; i < bin_p_density_vectors; i++){
+		int sze = (*p_density_vectors)[i].size();
+		#pragma acc update host(this->gpu_p_density_vectors[i:1][:sze])
+	}
+	#pragma acc update host(this->sizes_p_density_vectors[:bin_p_density_vectors])
+
+	for (int i = 0; i < bin_p_density_vectors; i++) {
+		for (int j = 0; j < this->sizes_p_density_vectors[i]; j++) {
+			(*p_density_vectors)[i][j] = this->gpu_p_density_vectors[i][j];
+		}
+	}
 }
 
 };

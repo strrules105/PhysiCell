@@ -164,6 +164,9 @@ int main( int argc, char* argv[] )
 		report_file.open(filename); 	// create the data log file 
 		report_file<<"simulated time\tnum cells\tnum division\tnum death\twall time"<<std::endl;
 	}
+
+	//set the diffusion solver to GPU
+	microenvironment.diffusion_decay_solver = diffusion_decay_solver__constant_coefficients_LOD_3D_GPU;
 	
 	// main loop 
 	
@@ -191,6 +194,7 @@ int main( int argc, char* argv[] )
 			// save data if it's time. 
 			if( fabs( PhysiCell_globals.current_time - PhysiCell_globals.next_full_save_time ) < 0.01 * diffusion_dt )
 			{
+				std::cout << "1" << std::endl;
 				display_simulation_status( std::cout ); 
 				if( PhysiCell_settings.enable_legacy_saves == true )
 				{	
@@ -211,6 +215,7 @@ int main( int argc, char* argv[] )
 			// save SVG plot if it's time
 			if( fabs( PhysiCell_globals.current_time - PhysiCell_globals.next_SVG_save_time  ) < 0.01 * diffusion_dt )
 			{
+				std::cout << "2" << std::endl;
 				if( PhysiCell_settings.enable_SVG_saves == true )
 				{	
 					sprintf( filename , "%s/snapshot%08u.svg" , PhysiCell_settings.folder.c_str() , PhysiCell_globals.SVG_output_index ); 

@@ -59,6 +59,13 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D( Microenvironment& M, 
 // /*! diffusion-decay solver: 2D LOD implicit (stable method). D and r uniform */  
 void diffusion_decay_solver__constant_coefficients_LOD_2D( Microenvironment& M, double dt ); // done
 
+// GPU 3D
+void diffusion_decay_solver__constant_coefficients_LOD_3D_GPU( Microenvironment& M, double dt );
+
+// GPU 2D
+void diffusion_decay_solver__constant_coefficients_LOD_2D_GPU( Microenvironment& M, double dt );
+
+
 /*! This solves for constant diffusion coefficients on a general mesh using the 
     explicit stepping for the diffusion operator, and implicit stepping for all 
     other terms to increase stability. It is suitable for a general mesh. */ 
