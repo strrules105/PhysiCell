@@ -33,9 +33,10 @@ ARCH := native # best auto-tuning
 # CFLAGS := -march=$(ARCH) -Ofast -s -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11
 CFLAGS := -march=$(ARCH) -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11
 # ACCFLAGS := used for GPU and PGI
-ACCFLAGS := -std=c++11 _minline -Minfo=accel -acc -ta=tesla,cc70
+ACCFLAGS := -std=c++11 -Minline -Minfo=accel -acc -ta=tesla,cc70
 
-COMPILE_COMMAND := $(CC) $(CFLAGS) 
+#COMPILE_COMMAND := $(CC) $(CFLAGS) 
+COMPILE_COMMAND := $(PGI) $(ACCFLAGS) 
 
 ACC_COMPILE_COMMAND := $(PGI) $(ACCFLAGS)
 

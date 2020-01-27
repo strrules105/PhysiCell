@@ -243,7 +243,7 @@ int main( int argc, char* argv[] )
 			#pragma omp parallel for 
 			for( int i=0; i < (*all_cells).size(); i++ )
 			{
-				(*all_cells)[i]->phenotype.secretion.advance( (*all_cells)[i], (*all_cells)[i]->phenotype , diffusion_dt_ );
+				(*all_cells)[i]->phenotype.secretion.advance( (*all_cells)[i], (*all_cells)[i]->phenotype , diffusion_dt );
 			}			
 			
 			PhysiCell_globals.current_time += diffusion_dt;

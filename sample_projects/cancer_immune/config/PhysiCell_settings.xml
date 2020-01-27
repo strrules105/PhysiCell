@@ -192,7 +192,9 @@
 		<max_attachment_distance type="double" units="micron">18.0</max_attachment_distance>
 			<!-- cells do not remain attached beyond this distance --> 
 		<min_attachment_distance type="double" units="micron">14.0</min_attachment_distance>
-			<!-- analogous ot resting spring length --> 
+		<!-- analogous ot resting spring length --> 
+
+		<!-- OpenACC Params -->
 
 		
 	</user_parameters>
