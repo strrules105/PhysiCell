@@ -1714,9 +1714,13 @@ void Microenvironment::x_diffusion_GPU_3D(){
 	int z_size = mesh.z_coordinates.size();
 
 	#pragma acc parallel loop present(gpu_p_density_vectors, sizes_p_density_vectors, gpu_thomas_denomx, gpu_thomas_i_jump, gpu_thomas_cx) 
-	for ( int k= 0; k < z_size; k++ )
+//	for ( int k= 0; k < z_size; k++ )
+//	{
+//		for ( int j=0; j < y_size ; j++ ) 
+//		{
+	for ( int j=0; j < y_size ; j++ ) 
 	{
-		for ( int j=0; j < y_size ; j++ ) 
+		for ( int k= 0; k < z_size; k++ )
 		{
 			int n = voxel_index(0, j, k);
 ///			#pragma acc loop seq 
@@ -1761,9 +1765,13 @@ void Microenvironment::y_diffusion_GPU_3D(){
 	int z_size = mesh.z_coordinates.size();
 
 	#pragma acc parallel loop present(gpu_p_density_vectors, sizes_p_density_vectors, gpu_thomas_denomy, gpu_thomas_j_jump, gpu_thomas_cy) 
-	for ( int k= 0; k < z_size; k++ )
+//	for ( int k= 0; k < z_size; k++ )
+//	{
+//		for ( int i=0; i < x_size ; i++ ) 
+//		{
+	for ( int i=0; i < x_size ; i++ ) 
 	{
-		for ( int i=0; i < x_size ; i++ ) 
+		for ( int k= 0; k < z_size; k++ )
 		{
 			int n = voxel_index(i, 0, k);
 ///			#pragma acc loop seq 
@@ -1808,9 +1816,13 @@ void Microenvironment::z_diffusion_GPU_3D(){
 	int z_size = mesh.z_coordinates.size();
 
 	#pragma acc parallel loop present(gpu_p_density_vectors, sizes_p_density_vectors, gpu_thomas_denomz, gpu_thomas_k_jump, gpu_thomas_cz) 
-	for ( int j= 0; j < y_size; j++ )
+//	for ( int j= 0; j < y_size; j++ )
+//	{
+//		for ( int i=0; i < x_size ; i++ ) 
+//		{
+	for ( int i=0; i < x_size ; i++ ) 
 	{
-		for ( int i=0; i < x_size ; i++ ) 
+		for ( int j= 0; j < y_size; j++ )
 		{
 			int n = voxel_index(i, j, 0);
 ///			#pragma acc loop seq 

@@ -199,7 +199,7 @@ int main( int argc, char* argv[] )
 				if (first == false){
 					std::cout << "updating host" << std::endl;
 					microenvironment.translate_array_to_vector();
-					std::cout << "-continuing-" << std::endl;
+					std::cout << "-------continuing-------" << std::endl;
 				}
 				first = false;
 				display_simulation_status( std::cout ); 
@@ -268,6 +268,7 @@ int main( int argc, char* argv[] )
 	}
 	
 	// save a final simulation snapshot 
+	microenvironment.translate_array_to_vector();
 	
 	sprintf( filename , "%s/final" , PhysiCell_settings.folder.c_str() ); 
 	save_PhysiCell_to_MultiCellDS_xml_pugi( filename , microenvironment , PhysiCell_globals.current_time ); 
