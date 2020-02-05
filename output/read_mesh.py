@@ -4,8 +4,7 @@ import matplotlib
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 
-#mcds1 = pyMCDS('output00000002.xml')
-mcds1 = pyMCDS('final.xml')
+mcds1 = pyMCDS('output00000002.xml')
 
 print(mcds1.get_time())
 oxy = mcds1.get_concentrations('oxygen')

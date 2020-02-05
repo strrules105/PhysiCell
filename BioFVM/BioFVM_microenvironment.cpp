@@ -1714,28 +1714,24 @@ void Microenvironment::x_diffusion_GPU_3D(){
 	int z_size = mesh.z_coordinates.size();
 
 	#pragma acc parallel loop present(gpu_p_density_vectors, sizes_p_density_vectors, gpu_thomas_denomx, gpu_thomas_i_jump, gpu_thomas_cx) 
-//	for ( int k= 0; k < z_size; k++ )
-//	{
-//		for ( int j=0; j < y_size ; j++ ) 
-//		{
-	for ( int j=0; j < y_size ; j++ ) 
 	{
-		for ( int k= 0; k < z_size; k++ )
+	#pragma acc loop independent gang
+	for ( int k= 0; k < z_size; k++ )
+	{
+		#pragma acc loop independent vector
+		for ( int j=0; j < y_size ; j++ ) 
 		{
 			int n = voxel_index(0, j, k);
-///			#pragma acc loop seq 
-//			#pragma acc parallel loop
+			#pragma acc loop seq 
 			for (int q = 0; q < sizes_p_density_vectors[n]; q++)
 				{ gpu_p_density_vectors[n][q] /= gpu_thomas_denomx[0][q];}
 
-///			#pragma acc loop seq
-//			#pragma acc parallel loop
+			#pragma acc loop seq
 			for (int i=1; i < x_size ; i++) 
 			{
 				n = voxel_index(i, j, k);
 				axpy_acc(gpu_p_density_vectors[n], gpu_thomas_constant1, gpu_p_density_vectors[n-*gpu_thomas_i_jump], sizes_p_density_vectors[n]);
-///				#pragma acc loop seq
-//				#pragma acc parallel loop
+				#pragma acc loop seq
 			 	for (int q = 0; q < sizes_p_density_vectors[n]; q++)
 					{ gpu_p_density_vectors[n][q] /= gpu_thomas_denomx[i][q]; }
 	
@@ -1743,8 +1739,7 @@ void Microenvironment::x_diffusion_GPU_3D(){
 	
 			// back substitution
 			// n = voxel_index(x_size-2, j, 0);
-///			#pragma acc loop seq
-//			#pragma acc parallel loop
+			#pragma acc loop seq
 			for (int i = x_size-2 ; i >= 0 ; i--) 
 			{
 				n = voxel_index(i, j, k);
@@ -1754,6 +1749,7 @@ void Microenvironment::x_diffusion_GPU_3D(){
 	}
 //	std::cout << "Done x_diffusion_acc" << std::endl;
 
+	} // end of parallel region
 }
 // end X-Diffusion GPU for 3D
 
@@ -1765,28 +1761,24 @@ void Microenvironment::y_diffusion_GPU_3D(){
 	int z_size = mesh.z_coordinates.size();
 
 	#pragma acc parallel loop present(gpu_p_density_vectors, sizes_p_density_vectors, gpu_thomas_denomy, gpu_thomas_j_jump, gpu_thomas_cy) 
-//	for ( int k= 0; k < z_size; k++ )
-//	{
-//		for ( int i=0; i < x_size ; i++ ) 
-//		{
-	for ( int i=0; i < x_size ; i++ ) 
 	{
-		for ( int k= 0; k < z_size; k++ )
+	#pragma acc loop independent gang
+	for ( int k= 0; k < z_size; k++ )
+	{
+		#pragma acc loop independent vector
+		for ( int i=0; i < x_size ; i++ ) 
 		{
 			int n = voxel_index(i, 0, k);
-///			#pragma acc loop seq 
-//			#pragma acc parallel loop
+			#pragma acc loop seq 
 			for (int q = 0; q < sizes_p_density_vectors[n]; q++)
 				{ gpu_p_density_vectors[n][q] /= gpu_thomas_denomy[0][q];}
 
-///			#pragma acc loop seq
-//			#pragma acc parallel loop
+			#pragma acc loop seq
 			for (int j=1; j < y_size ; j++) 
 			{
 				n = voxel_index(i, j, k);
 				axpy_acc(gpu_p_density_vectors[n], gpu_thomas_constant1, gpu_p_density_vectors[n-*gpu_thomas_j_jump], sizes_p_density_vectors[n]);
-///				#pragma acc loop seq
-//				#pragma acc parallel loop
+				#pragma acc loop seq
 				for (int q = 0; q < sizes_p_density_vectors[n]; q++)
 					{ gpu_p_density_vectors[n][q] /= gpu_thomas_denomy[j][q]; }
 	
@@ -1794,8 +1786,7 @@ void Microenvironment::y_diffusion_GPU_3D(){
 	
 			// back substitution
 			// n = voxel_index(x_size-2, j, k);
-///			#pragma acc loop seq
-//			#pragma acc parallel loop
+			#pragma acc loop seq
 			for (int j = y_size-2 ; j >= 0 ; j--) 
 			{
 				n = voxel_index(i, j, k);
@@ -1805,6 +1796,7 @@ void Microenvironment::y_diffusion_GPU_3D(){
 	}
 //	std::cout << "Done y_diffusion_acc" << std::endl;
 
+	} // end of parallel region
 }
 // end Y-Diffusion GPU for 3D
 
@@ -1816,28 +1808,24 @@ void Microenvironment::z_diffusion_GPU_3D(){
 	int z_size = mesh.z_coordinates.size();
 
 	#pragma acc parallel loop present(gpu_p_density_vectors, sizes_p_density_vectors, gpu_thomas_denomz, gpu_thomas_k_jump, gpu_thomas_cz) 
-//	for ( int j= 0; j < y_size; j++ )
-//	{
-//		for ( int i=0; i < x_size ; i++ ) 
-//		{
-	for ( int i=0; i < x_size ; i++ ) 
+	{	
+	#pragma acc loop independent gang
+	for ( int j= 0; j < y_size; j++ )
 	{
-		for ( int j= 0; j < y_size; j++ )
+		#pragma acc loop independent vector
+		for ( int i=0; i < x_size ; i++ ) 
 		{
 			int n = voxel_index(i, j, 0);
-///			#pragma acc loop seq 
-//			#pragma acc parallel loop
+			#pragma acc loop seq 
 			for (int q = 0; q < sizes_p_density_vectors[n]; q++)
 				{ gpu_p_density_vectors[n][q] /= gpu_thomas_denomz[0][q];}
 
-///			#pragma acc loop seq
-//			#pragma acc parallel loop
+			#pragma acc loop seq
 			for (int k=1; k < z_size ; k++) 
 			{
 				n = voxel_index(i, j, k);
 				axpy_acc(gpu_p_density_vectors[n], gpu_thomas_constant1, gpu_p_density_vectors[n-*gpu_thomas_k_jump], sizes_p_density_vectors[n]);
-///				#pragma acc loop seq
-//				#pragma acc parallel loop
+				#pragma acc loop seq
 				for (int q = 0; q < sizes_p_density_vectors[n]; q++)
 					{ gpu_p_density_vectors[n][q] /= gpu_thomas_denomz[k][q]; }
 	
@@ -1845,8 +1833,7 @@ void Microenvironment::z_diffusion_GPU_3D(){
 	
 			// back substitution
 			// n = voxel_index(x_size-2, j, k);
-///			#pragma acc loop seq
-//			#pragma acc parallel loop
+			#pragma acc loop seq
 			for (int k = z_size-2 ; k >= 0 ; k--) 
 			{
 				n = voxel_index(i, j, k);
@@ -1855,7 +1842,7 @@ void Microenvironment::z_diffusion_GPU_3D(){
 		}
 	}
 //	std::cout << "Done x_diffusion_acc" << std::endl;
-
+	} // end of parallel region
 }
 // end Z-Diffusion GPU for 3D
 
