@@ -313,7 +313,7 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D_GPU( Microenvironment&
 	
 	if( !M.diffusion_solver_setup_done )
 	{
-		std::cout << std::endl << "Using method " << __FUNCTION__ << " (implicit 3-D LOD with Thomas Algorithm) ... " 
+		std::cout << std::endl << "Using method " << __FUNCTION__ << " (implicit 3-D GPU  LOD with Thomas Algorithm) ... " 
 		<< std::endl << std::endl;  
 		
 		M.thomas_denomx.resize( M.mesh.x_coordinates.size() , M.zero );

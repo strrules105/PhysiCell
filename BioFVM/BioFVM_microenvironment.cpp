@@ -689,6 +689,10 @@ std::vector<double>& Microenvironment::density_vector( int i, int j )
 std::vector<double>& Microenvironment::density_vector( int n )
 { return (*p_density_vectors)[ n ]; }
 
+#pragma acc routine
+double& Microenvironment::density_vector_GPU( int n )
+{ return (*gpu_p_density_vectors)[ n ]; }
+
 void Microenvironment::simulate_diffusion_decay( double dt )
 {
 	if( diffusion_decay_solver )
@@ -1545,7 +1549,7 @@ void Microenvironment::transfer_3D()
 
 	gpu_dirichlet_activation_vector = new bool [bin_dirichlet_activation_vector];
 
-	#pragma acc enter data create(this->gpu_dirichlet_activation_vector[0:bin_dirichlet_activation_vector])
+//	#pragma acc enter data create(this->gpu_dirichlet_activation_vector[0:bin_dirichlet_activation_vector])
 	for (int i = 0; i < bin_dirichlet_activation_vector; i++) {
 		gpu_dirichlet_activation_vector[i] = dirichlet_activation_vector.at(i);
 	}
@@ -1560,12 +1564,18 @@ void Microenvironment::transfer_3D()
 
 	gpu_voxels_is_dirichlet = new bool [bin_mesh];
 
-	#pragma acc enter data create(this->gpu_voxels_is_dirichlet[0:bin_mesh])
+//	#pragma acc enter data create(this->gpu_voxels_is_dirichlet[0:bin_mesh])
 	for (int i = 0; i < bin_mesh; i ++) {
 		gpu_voxels_is_dirichlet[i] = mesh.voxels[i].is_Dirichlet;
 	}
 	#pragma acc enter data copyin(this->gpu_voxels_is_dirichlet[:bin_mesh])
 	// end gpu_voxel_is_dirichlet
+	
+
+	// Below is num_dirichlet
+	num_dirichlet = 0;
+	#pragma acc enter data create(this->num_dirichlet)
+	// End num_dirichlet
 
 	std::cout << "Done transfer" << std::endl;
 }
@@ -1595,13 +1605,18 @@ void Microenvironment::naxpy_acc( double* y, double* a , double* x, int size )
 void Microenvironment::apply_dirichlet_conditions_GPU( void ) {
 	int mesh_size = mesh.voxels.size();
 
-	#pragma acc parallel loop present(gpu_p_density_vectors, gpu_dirichlet_value_vectors, sizes_dirichlet_value_vectors, gpu_dirichlet_activation_vector, gpu_voxels_is_dirichlet)
+	#pragma acc parallel loop present(gpu_p_density_vectors, gpu_dirichlet_value_vectors, sizes_dirichlet_value_vectors, gpu_dirichlet_activation_vector, gpu_voxels_is_dirichlet, num_dirichlet)
 	for (int i = 0; i < mesh_size; i ++){
 		//if (mesh.voxels[i].is_Dirichlet == true){
 		if (gpu_voxels_is_dirichlet[i] == true){
+					num_dirichlet ++;
 			for (int j = 0; j < sizes_dirichlet_value_vectors[i]; j++) {
+					num_dirichlet ++;
 				if ( gpu_dirichlet_activation_vector[j] == true) {
 					gpu_p_density_vectors[i][j] = gpu_dirichlet_value_vectors[i][j];
+					//density_vector_GPU(i)[j] = gpu_dirichlet_value_vectors[i][j];
+					// TEST whether or not it goes this far with an int
+					num_dirichlet ++;
 				}
 			}
 		}
@@ -1885,6 +1900,10 @@ void Microenvironment::translate_array_to_vector()
 			(*p_density_vectors)[i][j] = this->gpu_p_density_vectors[i][j];
 		}
 	}
+
+	// Below is num_dirichlet
+	#pragma acc update host(this->num_dirichlet)
+	// End num_dirichlet
 }
 
 };

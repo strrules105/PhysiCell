@@ -158,6 +158,8 @@ class Microenvironment
 	int * sizes_dirichlet_value_vectors;
 	int sizes_thomas_constant1;
 
+	int num_dirichlet;
+
 	/* functions for GPU  */
 	void axpy_acc( double* y, double* a, double* x, int size ); //added size to axpy, passes in size of the first array for ease
 	void naxpy_acc( double* y, double* a, double* x, int size ); //added size to naxpy, passes in size of the first array for ease
@@ -267,9 +269,13 @@ class Microenvironment
 	std::vector<double>& density_vector( int i, int j, int k ); 
 	/*! access the density vector at  [ X(i),Y(j),0 ]  -- helpful for 2-D problems */
 	std::vector<double>& density_vector( int i, int j ); 
+
 	/*! access the density vector at [x,y,z](n) */
 	std::vector<double>& density_vector( int n ); 
 
+	#pragma acc routine
+	double& density_vector_GPU( int n );
+       	
 	/*! advance the diffusion-decay solver by dt time */
 	void simulate_diffusion_decay( double dt ); 
 	

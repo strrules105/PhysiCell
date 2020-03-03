@@ -169,12 +169,21 @@ int main( int argc, char* argv[] )
 	microenvironment.diffusion_decay_solver = diffusion_decay_solver__constant_coefficients_LOD_3D_GPU;
 	bool first = true;
 	
+	int outs = 0;
+
 	// main loop 
 	
 	try 
 	{	
 		while( PhysiCell_globals.current_time < PhysiCell_settings.max_time + 0.1*diffusion_dt )
 		{
+			if (outs == 1){
+				microenvironment.translate_array_to_vector();
+				sprintf( filename , "%s/first_out" , PhysiCell_settings.folder.c_str() ); 
+				save_PhysiCell_to_MultiCellDS_xml_pugi( filename , microenvironment , PhysiCell_globals.current_time ); 
+			}
+
+
 			static bool immune_cells_introduced = false; 
 			if( PhysiCell_globals.current_time > immune_activation_time - 0.01*diffusion_dt && immune_cells_introduced == false )
 			{
@@ -246,14 +255,15 @@ int main( int argc, char* argv[] )
 			// since these are ordinarily automatically done as part of phenotype.secretion in the 
 			// PhysiCell update that we commented out above. Remove this when we go 
 			// back to main code 
-			
+/*			
 			#pragma omp parallel for 
 			for( int i=0; i < (*all_cells).size(); i++ )
 			{
 				(*all_cells)[i]->phenotype.secretion.advance( (*all_cells)[i], (*all_cells)[i]->phenotype , diffusion_dt );
 			}			
-			
+*/			
 			PhysiCell_globals.current_time += diffusion_dt;
+			outs++;
 		}
 		
 		if( PhysiCell_settings.enable_legacy_saves == true )
@@ -269,6 +279,8 @@ int main( int argc, char* argv[] )
 	
 	// save a final simulation snapshot 
 	microenvironment.translate_array_to_vector();
+
+	std::cout << "NUM_DIRICHLET " << microenvironment.num_dirichlet << std::endl;
 	
 	sprintf( filename , "%s/final" , PhysiCell_settings.folder.c_str() ); 
 	save_PhysiCell_to_MultiCellDS_xml_pugi( filename , microenvironment , PhysiCell_globals.current_time ); 
