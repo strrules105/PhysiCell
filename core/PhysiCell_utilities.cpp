@@ -92,6 +92,7 @@ long SeedRandom( void )
 	return seed;
 }
 
+//#pragma acc routine seq	
 double UniformRandom()
 {
 	return std::generate_canonical<double, 10>(gen);

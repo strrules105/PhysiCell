@@ -267,6 +267,7 @@ class Death
 	int find_death_model_index( int code ); // done 
 	int find_death_model_index( std::string name ); // done 
 	
+	#pragma acc routine seq	
 	bool check_for_death( double dt ); // done
 	void trigger_death( int death_model_index ); // done 
 	
@@ -416,6 +417,7 @@ class Secretion
 	// pMicroenvironment
 	void sync_to_current_microenvironment( void ); // done 
 	
+	#pragma acc routine seq	
 	void advance( Basic_Agent* pCell, Phenotype& phenotype , double dt ); 
 	
 	// use this to properly size the secretion parameters to the microenvironment 

@@ -914,12 +914,16 @@ void Microenvironment::compute_all_gradient_vectors( void )
 		gradient_constants_defined = true; 
 	}
 	
-	#pragma omp parallel for 
+//	#pragma acc parallel loop
+//	{	
+//	#pragma acc parallel loop
 	for( unsigned int k=0; k < mesh.z_coordinates.size() ; k++ )
 	{
+//		#pragma acc loop independent worker
 		for( unsigned int j=0; j < mesh.y_coordinates.size() ; j++ )
 		{
 			
+//			#pragma acc loop independent vector 
 			for( unsigned int i=1; i < mesh.x_coordinates.size()-1 ; i++ )
 			{
 				for( unsigned int q=0; q < number_of_densities() ; q++ )
@@ -936,13 +940,18 @@ void Microenvironment::compute_all_gradient_vectors( void )
 			
 		}
 	}
-	
-	#pragma omp parallel for 
+//	}
+//	#pragma acc parallel loop
+//	{
+//	#pragma acc loop independent gang
+//	#pragma acc parallel loop
 	for( unsigned int k=0; k < mesh.z_coordinates.size() ; k++ )
 	{
+//		#pragma acc loop independent worker
 		for( unsigned int i=0; i < mesh.x_coordinates.size() ; i++ )
 		{
 			
+//			#pragma acc loop independent vector
 			for( unsigned int j=1; j < mesh.y_coordinates.size()-1 ; j++ )
 			{
 				for( unsigned int q=0; q < number_of_densities() ; q++ )
@@ -958,13 +967,19 @@ void Microenvironment::compute_all_gradient_vectors( void )
 			
 		}
 	}
+//	}
 
-	#pragma omp parallel for 
+//	#pragma acc parallel loop
+//	{
+//	#pragma acc loop independent gang
+//	#pragma acc  parallel loop
 	for( unsigned int j=0; j < mesh.y_coordinates.size() ; j++ )
 	{
+//		#pragma acc loop independent worker
 		for( unsigned int i=0; i < mesh.x_coordinates.size() ; i++ )
 		{
 			
+//			#pragma acc loop independent vector
 			for( unsigned int k=1; k < mesh.z_coordinates.size()-1 ; k++ )
 			{
 				for( unsigned int q=0; q < number_of_densities() ; q++ )
@@ -980,7 +995,7 @@ void Microenvironment::compute_all_gradient_vectors( void )
 			
 		}
 	}
-
+//	}
 	return; 
 }
 

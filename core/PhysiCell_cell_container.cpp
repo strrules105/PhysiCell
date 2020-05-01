@@ -173,17 +173,17 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 			if((*all_cells)[i]->is_out_of_domain)
 			{ continue; }
 			// (*all_cells)[i]->phenotype.advance_bundled_models( (*all_cells)[i] , time_since_last_cycle ); 
-			(*all_cells)[i]->advance_bundled_phenotype_functions( time_since_last_cycle ); 
+//			(*all_cells)[i]->advance_bundled_phenotype_functions( time_since_last_cycle ); 
 		}
 		
 		// process divides / removes 
 		for( int i=0; i < cells_ready_to_divide.size(); i++ )
 		{
-			cells_ready_to_divide[i]->divide();
+//			cells_ready_to_divide[i]->divide();
 		}
 		for( int i=0; i < cells_ready_to_die.size(); i++ )
 		{	
-			cells_ready_to_die[i]->die();	
+//			cells_ready_to_die[i]->die();	
 		}
 		num_divisions_in_current_step+=  cells_ready_to_divide.size();
 		num_deaths_in_current_step+=  cells_ready_to_die.size();
@@ -245,7 +245,8 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 {
 	// secretions and uptakes. Syncing with BioFVM is automated. 
 
-	#pragma omp parallel for 
+//	#pragma omp parallel for 
+	#pragma acc parallel loop gang
 	for( int i=0; i < (*all_cells).size(); i++ )
 	{
 		(*all_cells)[i]->phenotype.secretion.advance( (*all_cells)[i], (*all_cells)[i]->phenotype , diffusion_dt_ );
@@ -270,23 +271,24 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 		
 		// new as of 1.2.1 -- bundles cell phenotype parameter update, volume update, geometry update, 
 		// checking for death, and advancing the cell cycle. Not motility, though. (that's in mechanics)
-		#pragma omp parallel for 
+//		#pragma omp parallel for 
+//		#pragma acc parallel loop gang
 		for( int i=0; i < (*all_cells).size(); i++ )
 		{
 			if((*all_cells)[i]->is_out_of_domain)
 			{ continue; }
 			// (*all_cells)[i]->phenotype.advance_bundled_models( (*all_cells)[i] , time_since_last_cycle ); 
-			(*all_cells)[i]->advance_bundled_phenotype_functions( time_since_last_cycle ); 
+//			(*all_cells)[i]->advance_bundled_phenotype_functions( time_since_last_cycle ); 
 		}
 		
 		// process divides / removes 
 		for( int i=0; i < cells_ready_to_divide.size(); i++ )
 		{
-			cells_ready_to_divide[i]->divide();
+//			cells_ready_to_divide[i]->divide();
 		}
 		for( int i=0; i < cells_ready_to_die.size(); i++ )
 		{	
-			cells_ready_to_die[i]->die();	
+//			cells_ready_to_die[i]->die();	
 		}
 		num_divisions_in_current_step+=  cells_ready_to_divide.size();
 		num_deaths_in_current_step+=  cells_ready_to_die.size();
@@ -313,7 +315,8 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 		// end of new in Feb 2018 		
 		
 		// Compute velocities
-		#pragma omp parallel for 
+//		#pragma omp parallel for 
+//		#pragma acc parallel loop gang
 		for( int i=0; i < (*all_cells).size(); i++ )
 		{
 
@@ -330,7 +333,8 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 			}
 		}
 		// Calculate new positions
-		#pragma omp parallel for 
+//		#pragma omp parallel for 
+//		#pragma acc parallel loop gang
 		for( int i=0; i < (*all_cells).size(); i++ )
 		{
 			if(!(*all_cells)[i]->is_out_of_domain && (*all_cells)[i]->is_movable)

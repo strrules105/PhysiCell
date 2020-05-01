@@ -231,7 +231,6 @@ int main( int argc, char* argv[] )
 			// save SVG plot if it's time
 			if( fabs( PhysiCell_globals.current_time - PhysiCell_globals.next_SVG_save_time  ) < 0.01 * diffusion_dt )
 			{
-				std::cout << "2" << std::endl;
 				if( PhysiCell_settings.enable_SVG_saves == true )
 				{	
 					sprintf( filename , "%s/snapshot%08u.svg" , PhysiCell_settings.folder.c_str() , PhysiCell_globals.SVG_output_index ); 
@@ -248,20 +247,23 @@ int main( int argc, char* argv[] )
 			// { microenvironment.compute_all_gradient_vectors(); }
 			
 			// run PhysiCell 
-			// ((Cell_Container *)microenvironment.agent_container)->update_all_cells( PhysiCell_globals.current_time );
+			 ((Cell_Container *)microenvironment.agent_container)->update_all_cells( PhysiCell_globals.current_time );
 			
 			
 			// manually call the code for cell sources and sinks, 
 			// since these are ordinarily automatically done as part of phenotype.secretion in the 
 			// PhysiCell update that we commented out above. Remove this when we go 
 			// back to main code 
-/*			
-			#pragma omp parallel for 
+			#pragma acc parallel loop
+			{			
+			#pragma acc loop independent gang 
 			for( int i=0; i < (*all_cells).size(); i++ )
 			{
 				(*all_cells)[i]->phenotype.secretion.advance( (*all_cells)[i], (*all_cells)[i]->phenotype , diffusion_dt );
 			}			
-*/			
+			}
+
+
 			PhysiCell_globals.current_time += diffusion_dt;
 			outs++;
 		}
