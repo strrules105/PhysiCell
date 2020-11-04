@@ -3,6 +3,7 @@ PROGRAM_NAME := cancer_immune_3D
 
 CC := g++
 PGI := pgc++
+NV := nvc++
 # CC := g++-mp-7 # typical macports compiler name
 # CC := g++-7 # typical homebrew compiler name 
 
@@ -33,15 +34,18 @@ ARCH := native # best auto-tuning
 # CFLAGS := -march=$(ARCH) -Ofast -s -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11
 CFLAGS := -march=$(ARCH) -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11
 # ACCFLAGS := used for GPU and PGI
-ACCFLAGS := -std=c++11 -Minline -Minfo=accel -acc -ta=tesla,cc70
-#ACCFLAGS := -std=c++11 -Minline -Minfo=accel -acc -ta=tesla:managed
+# ACCFLAGS := -std=c++11 -Minline -Minfo=accel -acc -ta=tesla,cc70
+ACCFLAGS := -std=c++11 -Minline -Minfo=accel -acc -ta=tesla:managed
 #ACCFLAGS := -std=c++11 -Minline -Minfo=accel -acc -ta=host
 #ACCFLAGS := -std=c++11 -Minline -Minfo=accel -acc -ta=multicore
+#NVACCFLAGS := -std=c++11 -Minline -Minfo=accel -acc -gpu=managed
+NVACCFLAGS := -std=c++11 -Minline -Minfo=accel -acc -gpu=cc70
 
-#COMPILE_COMMAND := $(CC) $(CFLAGS) 
-COMPILE_COMMAND := $(PGI) $(ACCFLAGS) 
+COMPILE_COMMAND := $(CC) $(CFLAGS) 
 
 ACC_COMPILE_COMMAND := $(PGI) $(ACCFLAGS)
+
+NV_ACC_COMPILE_COMMAND := $(NV) $(NVACCFLAGS)
 
 BioFVM_OBJECTS := BioFVM_vector.o BioFVM_mesh.o BioFVM_microenvironment.o BioFVM_solvers.o BioFVM_matlab.o \
 BioFVM_utilities.o BioFVM_basic_agent.o BioFVM_MultiCellDS.o BioFVM_agent_container.o 
@@ -61,87 +65,87 @@ PhysiCell_OBJECTS := $(BioFVM_OBJECTS)  $(pugixml_OBJECTS) $(PhysiCell_core_OBJE
 ALL_OBJECTS := $(PhysiCell_OBJECTS) $(PhysiCell_custom_module_OBJECTS)
 	
 all: main.cpp $(ALL_OBJECTS)
-	$(COMPILE_COMMAND) -o $(PROGRAM_NAME) $(ALL_OBJECTS) main.cpp 
+	$(NV_ACC_COMPILE_COMMAND) -o $(PROGRAM_NAME) $(ALL_OBJECTS) main.cpp 
 
 # PhysiCell core components	
 
 PhysiCell_phenotype.o: ./core/PhysiCell_phenotype.cpp
-	$(COMPILE_COMMAND) -c ./core/PhysiCell_phenotype.cpp
+	$(NV_ACC_COMPILE_COMMAND) -c ./core/PhysiCell_phenotype.cpp
 	
 PhysiCell_digital_cell_line.o: ./core/PhysiCell_digital_cell_line.cpp
-	$(COMPILE_COMMAND) -c ./core/PhysiCell_digital_cell_line.cpp
+	$(NV_ACC_COMPILE_COMMAND) -c ./core/PhysiCell_digital_cell_line.cpp
 
 PhysiCell_cell.o: ./core/PhysiCell_cell.cpp
-	$(COMPILE_COMMAND) -c ./core/PhysiCell_cell.cpp 
+	$(NV_ACC_COMPILE_COMMAND) -c ./core/PhysiCell_cell.cpp 
 
 PhysiCell_cell_container.o: ./core/PhysiCell_cell_container.cpp
-	$(COMPILE_COMMAND) -c ./core/PhysiCell_cell_container.cpp 
+	$(NV_ACC_COMPILE_COMMAND) -c ./core/PhysiCell_cell_container.cpp 
 	
 PhysiCell_standard_models.o: ./core/PhysiCell_standard_models.cpp
-	$(COMPILE_COMMAND) -c ./core/PhysiCell_standard_models.cpp 
+	$(NV_ACC_COMPILE_COMMAND) -c ./core/PhysiCell_standard_models.cpp 
 	
 PhysiCell_utilities.o: ./core/PhysiCell_utilities.cpp
-	$(COMPILE_COMMAND) -c ./core/PhysiCell_utilities.cpp 
+	$(NV_ACC_COMPILE_COMMAND) -c ./core/PhysiCell_utilities.cpp 
 	
 PhysiCell_custom.o: ./core/PhysiCell_custom.cpp
-	$(COMPILE_COMMAND) -c ./core/PhysiCell_custom.cpp 
+	$(NV_ACC_COMPILE_COMMAND) -c ./core/PhysiCell_custom.cpp 
 	
 # BioFVM core components (needed by PhysiCell)
 	
 BioFVM_vector.o: ./BioFVM/BioFVM_vector.cpp
-	$(ACC_COMPILE_COMMAND) -c ./BioFVM/BioFVM_vector.cpp 
+	$(NV_ACC_COMPILE_COMMAND) -c ./BioFVM/BioFVM_vector.cpp 
 
 BioFVM_agent_container.o: ./BioFVM/BioFVM_agent_container.cpp
-	$(ACC_COMPILE_COMMAND) -c ./BioFVM/BioFVM_agent_container.cpp 
+	$(NV_ACC_COMPILE_COMMAND) -c ./BioFVM/BioFVM_agent_container.cpp 
 	
 BioFVM_mesh.o: ./BioFVM/BioFVM_mesh.cpp
-	$(ACC_COMPILE_COMMAND) -c ./BioFVM/BioFVM_mesh.cpp 
+	$(NV_ACC_COMPILE_COMMAND) -c ./BioFVM/BioFVM_mesh.cpp 
 
 BioFVM_microenvironment.o: ./BioFVM/BioFVM_microenvironment.cpp
-	$(ACC_COMPILE_COMMAND) -c ./BioFVM/BioFVM_microenvironment.cpp 
+	$(NV_ACC_COMPILE_COMMAND) -c ./BioFVM/BioFVM_microenvironment.cpp 
 
 BioFVM_solvers.o: ./BioFVM/BioFVM_solvers.cpp
-	$(ACC_COMPILE_COMMAND) -c ./BioFVM/BioFVM_solvers.cpp 
+	$(NV_ACC_COMPILE_COMMAND) -c ./BioFVM/BioFVM_solvers.cpp 
 
 BioFVM_utilities.o: ./BioFVM/BioFVM_utilities.cpp
-	$(ACC_COMPILE_COMMAND) -c ./BioFVM/BioFVM_utilities.cpp 
+	$(NV_ACC_COMPILE_COMMAND) -c ./BioFVM/BioFVM_utilities.cpp 
 	
 BioFVM_basic_agent.o: ./BioFVM/BioFVM_basic_agent.cpp
-	$(ACC_COMPILE_COMMAND) -c ./BioFVM/BioFVM_basic_agent.cpp 
+	$(NV_ACC_COMPILE_COMMAND) -c ./BioFVM/BioFVM_basic_agent.cpp 
 	
 BioFVM_matlab.o: ./BioFVM/BioFVM_matlab.cpp
-	$(ACC_COMPILE_COMMAND) -c ./BioFVM/BioFVM_matlab.cpp
+	$(NV_ACC_COMPILE_COMMAND) -c ./BioFVM/BioFVM_matlab.cpp
 
 BioFVM_MultiCellDS.o: ./BioFVM/BioFVM_MultiCellDS.cpp
-	$(ACC_COMPILE_COMMAND) -c ./BioFVM/BioFVM_MultiCellDS.cpp
+	$(NV_ACC_COMPILE_COMMAND) -c ./BioFVM/BioFVM_MultiCellDS.cpp
 	
 pugixml.o: ./BioFVM/pugixml.cpp
-	$(ACC_COMPILE_COMMAND) -c ./BioFVM/pugixml.cpp
+	$(NV_ACC_COMPILE_COMMAND) -c ./BioFVM/pugixml.cpp
 	
 # standard PhysiCell modules
 
 PhysiCell_SVG.o: ./modules/PhysiCell_SVG.cpp
-	$(COMPILE_COMMAND) -c ./modules/PhysiCell_SVG.cpp
+	$(NV_ACC_COMPILE_COMMAND) -c ./modules/PhysiCell_SVG.cpp
 
 PhysiCell_pathology.o: ./modules/PhysiCell_pathology.cpp
-	$(COMPILE_COMMAND) -c ./modules/PhysiCell_pathology.cpp
+	$(NV_ACC_COMPILE_COMMAND) -c ./modules/PhysiCell_pathology.cpp
 
 PhysiCell_MultiCellDS.o: ./modules/PhysiCell_MultiCellDS.cpp
-	$(COMPILE_COMMAND) -c ./modules/PhysiCell_MultiCellDS.cpp
+	$(NV_ACC_COMPILE_COMMAND) -c ./modules/PhysiCell_MultiCellDS.cpp
 
 PhysiCell_various_outputs.o: ./modules/PhysiCell_various_outputs.cpp
-	$(COMPILE_COMMAND) -c ./modules/PhysiCell_various_outputs.cpp
+	$(NV_ACC_COMPILE_COMMAND) -c ./modules/PhysiCell_various_outputs.cpp
 	
 PhysiCell_pugixml.o: ./modules/PhysiCell_pugixml.cpp
-	$(COMPILE_COMMAND) -c ./modules/PhysiCell_pugixml.cpp
+	$(NV_ACC_COMPILE_COMMAND) -c ./modules/PhysiCell_pugixml.cpp
 	
 PhysiCell_settings.o: ./modules/PhysiCell_settings.cpp
-	$(COMPILE_COMMAND) -c ./modules/PhysiCell_settings.cpp
+	$(NV_ACC_COMPILE_COMMAND) -c ./modules/PhysiCell_settings.cpp
 	
 # user-defined PhysiCell modules
 
 cancer_immune_3D.o: ./custom_modules/cancer_immune_3D.cpp 
-	$(COMPILE_COMMAND) -c ./custom_modules/cancer_immune_3D.cpp
+	$(NV_ACC_COMPILE_COMMAND) -c ./custom_modules/cancer_immune_3D.cpp
 
 # cleanup
 
