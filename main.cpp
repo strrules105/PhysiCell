@@ -167,13 +167,23 @@ int main( int argc, char* argv[] )
 
 	//set the diffusion solver to GPU
 	microenvironment.diffusion_decay_solver = diffusion_decay_solver__constant_coefficients_LOD_3D_GPU;
+	bool first = true;
 	
+	int outs = 0;
+
 	// main loop 
 	
 	try 
 	{	
 		while( PhysiCell_globals.current_time < PhysiCell_settings.max_time + 0.1*diffusion_dt )
 		{
+			if (outs == 1){
+				microenvironment.translate_array_to_vector();
+				sprintf( filename , "%s/first_out" , PhysiCell_settings.folder.c_str() ); 
+				save_PhysiCell_to_MultiCellDS_xml_pugi( filename , microenvironment , PhysiCell_globals.current_time ); 
+			}
+
+
 			static bool immune_cells_introduced = false; 
 			if( PhysiCell_globals.current_time > immune_activation_time - 0.01*diffusion_dt && immune_cells_introduced == false )
 			{
@@ -194,7 +204,13 @@ int main( int argc, char* argv[] )
 			// save data if it's time. 
 			if( fabs( PhysiCell_globals.current_time - PhysiCell_globals.next_full_save_time ) < 0.01 * diffusion_dt )
 			{
-				std::cout << "1" << std::endl;
+				// translate data back to vector and update host
+				if (first == false){
+					std::cout << "updating host" << std::endl;
+					microenvironment.translate_array_to_vector();
+					std::cout << "-------continuing-------" << std::endl;
+				}
+				first = false;
 				display_simulation_status( std::cout ); 
 				if( PhysiCell_settings.enable_legacy_saves == true )
 				{	
@@ -215,7 +231,6 @@ int main( int argc, char* argv[] )
 			// save SVG plot if it's time
 			if( fabs( PhysiCell_globals.current_time - PhysiCell_globals.next_SVG_save_time  ) < 0.01 * diffusion_dt )
 			{
-				std::cout << "2" << std::endl;
 				if( PhysiCell_settings.enable_SVG_saves == true )
 				{	
 					sprintf( filename , "%s/snapshot%08u.svg" , PhysiCell_settings.folder.c_str() , PhysiCell_globals.SVG_output_index ); 
@@ -232,21 +247,25 @@ int main( int argc, char* argv[] )
 			// { microenvironment.compute_all_gradient_vectors(); }
 			
 			// run PhysiCell 
-			// ((Cell_Container *)microenvironment.agent_container)->update_all_cells( PhysiCell_globals.current_time );
+			 ((Cell_Container *)microenvironment.agent_container)->update_all_cells( PhysiCell_globals.current_time );
 			
 			
 			// manually call the code for cell sources and sinks, 
 			// since these are ordinarily automatically done as part of phenotype.secretion in the 
 			// PhysiCell update that we commented out above. Remove this when we go 
 			// back to main code 
-
-			#pragma omp parallel for 
+			#pragma acc parallel loop
+			{			
+			#pragma acc loop independent gang 
 			for( int i=0; i < (*all_cells).size(); i++ )
 			{
 				(*all_cells)[i]->phenotype.secretion.advance( (*all_cells)[i], (*all_cells)[i]->phenotype , diffusion_dt );
 			}			
-			
+			}
+
+
 			PhysiCell_globals.current_time += diffusion_dt;
+			outs++;
 		}
 		
 		if( PhysiCell_settings.enable_legacy_saves == true )
@@ -261,6 +280,9 @@ int main( int argc, char* argv[] )
 	}
 	
 	// save a final simulation snapshot 
+	microenvironment.translate_array_to_vector();
+
+	std::cout << "NUM_DIRICHLET " << microenvironment.num_dirichlet << std::endl;
 	
 	sprintf( filename , "%s/final" , PhysiCell_settings.folder.c_str() ); 
 	save_PhysiCell_to_MultiCellDS_xml_pugi( filename , microenvironment , PhysiCell_globals.current_time ); 

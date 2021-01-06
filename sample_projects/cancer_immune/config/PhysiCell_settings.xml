@@ -74,12 +74,12 @@
 
 <PhysiCell_settings version="devel-version">
 	<domain>
-		<x_min>-750</x_min>
-		<x_max>750</x_max>
-		<y_min>-750</y_min>
-		<y_max>750</y_max>
-		<z_min>-750</z_min>
-		<z_max>750</z_max>
+		<x_min>-1000</x_min>
+		<x_max>1000</x_max>
+		<y_min>-1000</y_min>
+		<y_max>1000</y_max>
+		<z_min>-1000</z_min>
+		<z_max>1000</z_max>
 		<dx>20</dx>
 		<dy>20</dy>
 		<dz>20</dz>
@@ -87,7 +87,8 @@
 	</domain>
 	
 	<overall>
-		<max_time units="min">30240</max_time> <!-- 21 days * 24 h * 60 min -->
+		<max_time units="min">120.0</max_time> <!-- 21 days * 24 h * 60 min -->
+		<!-- 30240 is the default --> 
 		<time_units>min</time_units>
 		<space_units>micron</space_units>
 	
@@ -109,8 +110,8 @@
 		</full_data>
 		
 		<SVG>
-			<interval units="min">60</interval>
-			<enable>true</enable>
+			<interval units="min">60</interval> 
+			<enable>false</enable>
 		</SVG>
 		
 		<legacy_data>
@@ -199,7 +200,9 @@
 		<max_attachment_distance type="double" units="micron">18.0</max_attachment_distance>
 			<!-- cells do not remain attached beyond this distance --> 
 		<min_attachment_distance type="double" units="micron">14.0</min_attachment_distance>
-			<!-- analogous ot resting spring length --> 
+		<!-- analogous ot resting spring length --> 
+
+		<!-- OpenACC Params -->
 
 		
 	</user_parameters>

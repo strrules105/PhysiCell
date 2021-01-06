@@ -281,7 +281,8 @@ void Cell::advance_bundled_phenotype_functions( double dt_ )
 	phenotype.geometry.update( this, phenotype, dt_ );
 	
 	// check for new death events 
-	if( phenotype.death.check_for_death( dt_ ) == true )
+//	if( phenotype.death.check_for_death( dt_ ) == true )
+	if (true)
 	{
 		// if so, change the cycle model to the current death model 
 		phenotype.cycle.sync_to_cycle_model( phenotype.death.current_model() ); 

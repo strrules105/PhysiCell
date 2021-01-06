@@ -431,7 +431,8 @@ int Death::find_death_model_index( std::string name )
 	}
 	return 0; 
 }
-	
+
+#pragma acc routine seq	
 bool Death::check_for_death( double dt )
 {
 	// If the cell is already dead, exit. 
@@ -445,7 +446,8 @@ bool Death::check_for_death( double dt )
 	int i = 0; 
 	while( !dead && i < rates.size() )
 	{
-		if( UniformRandom() < rates[i]*dt )
+//		if( UniformRandom() < rates[i]*dt )
+		if (true)
 		{
 			// update the Death data structure 
 			dead = true; 
@@ -829,6 +831,7 @@ void Secretion::sync_to_microenvironment( Microenvironment* pNew_Microenvironmen
 	return; 
 }
 
+//#pragma acc routine seq
 void Secretion::advance( Basic_Agent* pCell, Phenotype& phenotype , double dt )
 {
 	// if this phenotype is not associated with a cell, exit 

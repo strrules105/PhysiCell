@@ -1,3 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
 /*
 ###############################################################################
 # If you use PhysiCell in your project, please cite PhysiCell and the version #
@@ -64,214 +66,85 @@
 #                                                                             #
 ###############################################################################
 */
+--> 
 
-#include "PhysiCell_utilities.h"
-#include "PhysiCell_constants.h"
+<!--
+<user_details />
+-->
 
-#include "PhysiCell.h" 
-
-#include <iostream>
-#include <fstream>
-
-namespace PhysiCell{
-
-std::random_device rd;
-std::mt19937 gen(rd());
-
-long SeedRandom( long input )
-{
-	gen.seed(input);
-	return input;
-}
-
-
-long SeedRandom( void )
-{ 
-	unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
-	gen.seed(seed);
-	return seed;
-}
-
-//#pragma acc routine seq	
-double UniformRandom()
-{
-	return std::generate_canonical<double, 10>(gen);
-}
-
-double NormalRandom( double mean, double standard_deviation )
-{
-	std::normal_distribution<> d(mean,standard_deviation);
-	return d(gen); 
-}
-
-std::vector<double> UniformOnUnitSphere( void )
-{
-	std::vector<double> output = {0,0,0}; 
-
-	double z = UniformRandom();
-	z *= 2.0; 
-	z -= 1.0; // Choose z uniformly distributed in [-1,1].
-
-	static double two_pi = 6.283185307179586476925286766559; 
-	double theta = UniformRandom();
-	theta *= two_pi; // Choose theta uniformly distributed on [0, 2*pi).
-
-	double r = z; 
-	r *= z; 
-	r *= -1;
-	r += 1; 
-	r = sqrt(r); // Let r = sqrt(1-z^2).
-
-	output[0] = cos(theta); 
-	output[1] = sin(theta);
-	output *= r; 
-	output[2] = z; // (r*cos(theta) , r*sin(theta) , z )
-
-	return output; 
-}
-
-std::vector<double> UniformOnUnitCircle( void )
-{
-	std::vector<double> output = {0,0,0}; 
-
-	static double two_pi = 6.283185307179586476925286766559; 
-	double theta = UniformRandom();
-	theta *= two_pi; // Choose theta uniformly distributed on [0, 2*pi).
-
-	output[0] = cos(theta); 
-	output[1] = sin(theta); // (cos(t) , sin(t) , 0 )
-
-	return output; 
-}
-
-std::vector<double> LegacyRandomOnUnitSphere( void )
-{
-	static bool warned = false; 
-	if( warned == false )
-	{
-		std::cout << "Warning! LegacyRandomOnUnitSphere() has bad random properties. " << std::endl 
-				  << "         It generates points that aren't uniform on the random sphere," << std::endl 
-				  << "         but instead are concentrated towards the poles." << std::endl 
-				  << "         Use UniformOnUnitSphere() instead!" << std::endl << std::endl; 
-		warned = true; 
-	}
+<PhysiCell_settings version="devel-version">
+	<domain>
+		<x_min>-1000</x_min>
+		<x_max>1000</x_max>
+		<y_min>-1000</y_min>
+		<y_max>1000</y_max>
+		<z_min>-10</z_min>
+		<z_max>10</z_max>
+		<dx>20</dx>
+		<dy>20</dy>
+		<dz>20</dz>
+		<use_2D>true</use_2D>
+	</domain>
 	
-	std::vector<double> output = {0,0,0}; 
-
-	static double pi = 3.1415926535897932384626433832795; 
-	static double two_pi = 6.283185307179586476925286766559; 
-	double theta = UniformRandom();
+	<overall>
+		<max_time units="min">64800</max_time> <!-- 5 days * 24 h * 60 min -->
+		<time_units>min</time_units>
+		<space_units>micron</space_units>
+	</overall>
 	
+	<parallel>
+		<omp_num_threads>4</omp_num_threads>
+	</parallel> 
 	
-	double temp_angle = two_pi*UniformRandom();
-	double temp_phi = pi*UniformRandom();
-	
-	
-	output[0]= cos( temp_angle );
-	output[1]= sin( temp_angle );
-	output *= sin( temp_phi );
-	output[2]= cos( temp_phi );
-	
-	return output; 
-}
+	<save>
+		<folder>output</folder> <!-- use . for root --> 
 
-
-// Squared distance between two points
-// This is already in BioFVM_vector as: 
-// double norm_squared( const std::vector<double>& v ); 
-// The following function will be deprecated. 
-double dist_squared(std::vector<double> p1, std::vector<double> p2)
-{
-	return (p1[0]-p2[0])*(p1[0]-p2[0]) + (p1[1]-p2[1])*(p1[1]-p2[1]) + (p1[2]-p2[2])*(p1[2]-p2[2]);
-}
-
-// Distance between two points
-// This is already in BioFVM_vector as: 
-// double norm( const std::vector<double>& v ); 
-// The following function will be deprecated. 
-double dist(std::vector<double> p1, std::vector<double> p2)
-{
-	return sqrt(dist_squared(p1, p2));
-}
-
-std::string get_PhysiCell_version( void )
-{
-//	extern std::string PhysiCell_version; 
-	return PhysiCell_Version; 
-}	
-void get_PhysiCell_version( std::string& pString )
-{
-//	extern std::string PhysiCell_version; 
-	pString.assign( PhysiCell_Version ); 
-}
-
-std::vector<std::string> software_versions; 
-std::vector<std::string> software_names; 
-std::vector<std::string> software_DOIs; 
-std::vector<std::string> software_URLs; 
-
-void display_citations( std::ostream& os )
-{
-	static bool PhysiCell_citation_added = false; 
-	if( PhysiCell_citation_added == false )
-	{
-		add_software_citation( "PhysiCell" , get_PhysiCell_version() , 
-			PhysiCell_DOI , PhysiCell_URL ); 
-		PhysiCell_citation_added = true; 
-	}
-	
-	std::ofstream of( "ALL_CITATIONS.txt" , std::ios::out );
-	for( int i=0; i < software_versions.size() ; i++ )
-	{
-		os << "Using " << software_names[i] 
-		<< " version " << software_versions[i] 
-		<< std::endl << "\tPlease cite DOI: " << software_DOIs[i] 
-		<< std::endl << "\tProject website: " << software_URLs[i] 
-		<< std::endl; 
+		<full_data>
+			<interval units="min">60</interval>
+			<enable>true</enable>
+		</full_data>
 		
-		of << "Using " << software_names[i] 
-		<< " version " << software_versions[i] 
-		<< std::endl << "\tPlease cite DOI: " << software_DOIs[i] 
-		<< std::endl << "\tProject website: " << software_URLs[i] 
-		<< std::endl; 
-	}
-	os << std::endl << "See ALL_CITATIONS.txt for this list." << std::endl; 
+		<SVG>
+			<interval units="min">60</interval>
+			<enable>true</enable>
+		</SVG>
+		
+		<legacy_data>
+			<enable>false</enable>
+		</legacy_data>
+	</save>
 	
-	of << std::endl; 
-	of.close(); 
+	<microenvironment_setup>
+		<variable name="oxygen" units="mmHg" ID="0">
+			<physical_parameter_set>
+				<diffusion_coefficient units="micron^2/min">100000.00</diffusion_coefficient>
+				<decay_rate units="1/min">.1</decay_rate>  
+			</physical_parameter_set>
+			<initial_condition units="mmHg">38.0</initial_condition>
+			<Dirichlet_boundary_condition units="mmHg" enabled="true">38.0</Dirichlet_boundary_condition>
+		</variable>
+		
+		<options>
+			<calculate_gradients>false</calculate_gradients>
+			<track_internalized_substrates_in_each_agent>false</track_internalized_substrates_in_each_agent>
+			<!-- not yet supported --> 
+			<initial_condition type="matlab" enabled="false">
+				<filename>./config/initial.mat</filename>
+			</initial_condition>
+			<!-- not yet supported --> 
+			<dirichlet_nodes type="matlab" enabled="false">
+				<filename>./config/dirichlet.mat</filename>
+			</dirichlet_nodes>
+		</options>
+	</microenvironment_setup>		
 	
-	return; 
-}
-
-void display_citations( void )
-{
-	return display_citations( std::cout ); 
-}
-
-void add_software_citation( std::string name , std::string version, std::string DOI , std::string URL )
-{
-	software_names.push_back( name ); 
-	software_versions.push_back( version ); 
-	software_DOIs.push_back( DOI ); 
-	software_URLs.push_back( URL ); 
-	return; 
-}
-
-int choose_event( std::vector<double>& probabilities )
-{
-	double rand_number = UniformRandom(); 
+	<user_parameters>
+		<tumor_radius type="double" units="micron">250.0</tumor_radius>
+		<oncoprotein_mean type="double" units="dimensionless">1.0</oncoprotein_mean>
+		<oncoprotein_sd type="double" units="dimensionless">0.25</oncoprotein_sd>
+		<oncoprotein_min type="double" units="dimensionless">0.0</oncoprotein_min>
+		<oncoprotein_max type="double" units="dimensionless">2</oncoprotein_max>
+		<random_seed type="int" units="dimensionless">0</random_seed>
+	</user_parameters>
 	
-	for( int i=0 ; i < probabilities.size() ; i++ )
-	{
-		if( rand_number <= probabilities[i] )
-		{ return i; }
-		else
-		{
-			rand_number -= probabilities[i]; 
-		}
-	}
-	
-	return probabilities.size(); 
-}
-
-};
+</PhysiCell_settings>

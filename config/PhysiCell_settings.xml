@@ -73,13 +73,22 @@
 -->
 
 <PhysiCell_settings version="devel-version">
-	<domain>
+  <domain>
+   
 		<x_min>-500</x_min>
 		<x_max>500</x_max>
 		<y_min>-500</y_min>
 		<y_max>500</y_max>
 		<z_min>-10</z_min>
 		<z_max>10</z_max>
+
+		
+		<!--<x_min>-1000</x_min>-->
+		<!--<x_max>1000</x_max>-->
+		<!--<y_min>-1000</y_min>-->
+		<!--<y_max>1000</y_max>-->
+		<!--<z_min>-1000</z_min>-->
+		<!--<z_max>1000</z_max>-->
 		<dx>20</dx>
 		<dy>20</dy>
 		<dz>20</dz>
@@ -87,7 +96,11 @@
 	</domain>
 	
 	<overall>
+
 		<max_time units="min">7200</max_time> <!-- 5 days * 24 h * 60 min -->
+
+		<!--<max_time units="min">120.0</max_time>--> <!-- 21 days * 24 h * 60 min -->
+		<!-- 30240 is the default --> 
 		<time_units>min</time_units>
 		<space_units>micron</space_units>
 	
@@ -104,13 +117,13 @@
 		<folder>output</folder> <!-- use . for root --> 
 
 		<full_data>
-			<interval units="min">360</interval>
+			<interval units="min">60</interval>
 			<enable>true</enable>
 		</full_data>
 		
 		<SVG>
-			<interval units="min">60</interval>
-			<enable>true</enable>
+			<interval units="min">60</interval> 
+			<enable>false</enable>
 		</SVG>
 		
 		<legacy_data>
@@ -190,6 +203,7 @@
 						</parameters>
 					</model> 
 
+					
 					<model code="101" name="necrosis">
 						<rate units="1/min">0.0</rate>
 						<transition_rates units="1/min">
@@ -205,7 +219,27 @@
 							<relative_rupture_volume units="dimensionless">2.0</relative_rupture_volume>
 						</parameters>
 					</model> 
-				</death>					
+				</death>
+				
+		<!-- main --> 
+		<immune_activation_time type="double" units="min">20160</immune_activation_time>
+			<!-- activate in 7 days --> 
+		<save_interval_after_therapy_start type="double" units="min">3.0</save_interval_after_therapy_start>
+		
+		<!-- immune cell properties --> 
+		<immune_o2_relative_uptake type="double" units="dimensionless">0.1</immune_o2_relative_uptake>
+		<immune_apoptosis_rate type="double" units="1/min">6.944e-5</immune_apoptosis_rate> 
+			<!-- 10 day survival time --> 
+		<immune_motility_persistence_time type="double" units="min">10</immune_motility_persistence_time>
+		<immune_migration_speed type="double" units="micron/min">1.0</immune_migration_speed>
+		<immune_migration_bias type="double" units="dimensionless">0.5</immune_migration_bias>
+		<immune_relative_adhesion type="double" units="dimensionless">0</immune_relative_adhesion>
+		<immune_relative_repulsion type="double" units="dimensionless">5</immune_relative_repulsion> 	
+		
+		<!-- some extra immune parameters --> 
+		<immune_kill_rate type="double" units="1/min">0.06667</immune_kill_rate> <!-- 15 min--> 
+		<immune_attachment_lifetime type="double" units="min">60.0</immune_attachment_lifetime> 
+		<immune_attachment_rate type="double" units="1/min">0.2</immune_attachment_rate> <!-- 5 min--> 
 
 				<volume>  
 					<total units="micron^3">2494</total>
@@ -348,6 +382,18 @@
 		<number_of_predators type="int" units="none" description="initial number of predators">5</number_of_predators> 
 		
 		<div_coloring type="divider" description="---Coloring settings---"/>
+		<!-- some attachment parameters --> 
+		<oncoprotein_saturation type="double" units="dimensionless">2.0</oncoprotein_saturation>
+			<!-- above this value, more oncoprotein doesn't make cells any further immunogenic -->
+		<oncoprotein_threshold type="double" units="dimensionless">0.5</oncoprotein_threshold>
+			<!-- below this vlaue, cells are not immunogenic --> 
+		<max_attachment_distance type="double" units="micron">18.0</max_attachment_distance>
+		<!-- cells do not remain attached beyond this distance -->
+
+		<min_attachment_distance type="double" units="micron">14.0</min_attachment_distance>
+		<!-- analogous ot resting spring length --> 
+
+		<!-- OpenACC Params -->
 
 		<prey_color type="string" description="color for prey">blue</prey_color>
 		<predator_color type="string" description="color for prey">orange</predator_color>

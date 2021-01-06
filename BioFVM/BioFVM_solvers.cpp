@@ -51,6 +51,7 @@
 
 #include <iostream>
 #include <omp.h>
+#include <openacc.h>
 
 namespace BioFVM{
 
@@ -299,6 +300,140 @@ void diffusion_decay_solver__constant_coefficients_LOD_3D( Microenvironment& M, 
 	return; 
 }
 
+void diffusion_decay_solver__constant_coefficients_LOD_3D_GPU( Microenvironment& M, double dt )
+{
+
+	if( M.mesh.uniform_mesh == false || M.mesh.Cartesian_mesh == false )
+	{
+		std::cout << "Error: This algorithm is written for uniform Cartesian meshes. Try: other solvers!" << std::endl << std::endl; 
+	return; 
+	}
+
+	// define constants and pre-computed quantities 
+	
+	if( !M.diffusion_solver_setup_done )
+	{
+		std::cout << std::endl << "Using method " << __FUNCTION__ << " (implicit 3-D GPU  LOD with Thomas Algorithm) ... " 
+		<< std::endl << std::endl;  
+		
+		M.thomas_denomx.resize( M.mesh.x_coordinates.size() , M.zero );
+		M.thomas_cx.resize( M.mesh.x_coordinates.size() , M.zero );
+
+		M.thomas_denomy.resize( M.mesh.y_coordinates.size() , M.zero );
+		M.thomas_cy.resize( M.mesh.y_coordinates.size() , M.zero );
+		
+		M.thomas_denomz.resize( M.mesh.z_coordinates.size() , M.zero );
+		M.thomas_cz.resize( M.mesh.z_coordinates.size() , M.zero );
+
+		M.thomas_i_jump = 1; 
+		M.thomas_j_jump = M.mesh.x_coordinates.size(); 
+		M.thomas_k_jump = M.thomas_j_jump * M.mesh.y_coordinates.size(); 
+
+		M.thomas_constant1 =  M.diffusion_coefficients; // dt*D/dx^2 
+		M.thomas_constant1a = M.zero; // -dt*D/dx^2; 
+		M.thomas_constant2 =  M.decay_rates; // (1/3)* dt*lambda 
+		M.thomas_constant3 = M.one; // 1 + 2*constant1 + constant2; 
+		M.thomas_constant3a = M.one; // 1 + constant1 + constant2; 		
+			
+		M.thomas_constant1 *= dt; 
+		M.thomas_constant1 /= M.mesh.dx; 
+		M.thomas_constant1 /= M.mesh.dx; 
+
+		M.thomas_constant1a = M.thomas_constant1; 
+		M.thomas_constant1a *= -1.0; 
+
+		M.thomas_constant2 *= dt; 
+		M.thomas_constant2 /= 3.0; // for the LOD splitting of the source 
+
+		M.thomas_constant3 += M.thomas_constant1; 
+		M.thomas_constant3 += M.thomas_constant1; 
+		M.thomas_constant3 += M.thomas_constant2; 
+
+		M.thomas_constant3a += M.thomas_constant1; 
+		M.thomas_constant3a += M.thomas_constant2; 
+
+		// Thomas solver coefficients 
+
+		M.thomas_cx.assign( M.mesh.x_coordinates.size() , M.thomas_constant1a ); 
+		M.thomas_denomx.assign( M.mesh.x_coordinates.size()  , M.thomas_constant3 ); 
+		M.thomas_denomx[0] = M.thomas_constant3a; 
+		M.thomas_denomx[ M.mesh.x_coordinates.size()-1 ] = M.thomas_constant3a; 
+		if( M.mesh.x_coordinates.size() == 1 )
+		{ M.thomas_denomx[0] = M.one; M.thomas_denomx[0] += M.thomas_constant2; } 
+
+		M.thomas_cx[0] /= M.thomas_denomx[0]; 
+		for( unsigned int i=1 ; i <= M.mesh.x_coordinates.size()-1 ; i++ )
+		{ 
+			axpy( &M.thomas_denomx[i] , M.thomas_constant1 , M.thomas_cx[i-1] ); 
+			M.thomas_cx[i] /= M.thomas_denomx[i]; // the value at  size-1 is not actually used  
+		}
+
+		M.thomas_cy.assign( M.mesh.y_coordinates.size() , M.thomas_constant1a ); 
+		M.thomas_denomy.assign( M.mesh.y_coordinates.size()  , M.thomas_constant3 ); 
+		M.thomas_denomy[0] = M.thomas_constant3a; 
+		M.thomas_denomy[ M.mesh.y_coordinates.size()-1 ] = M.thomas_constant3a; 
+		if( M.mesh.y_coordinates.size() == 1 )
+		{ M.thomas_denomy[0] = M.one; M.thomas_denomy[0] += M.thomas_constant2; } 
+
+		M.thomas_cy[0] /= M.thomas_denomy[0]; 
+		for( unsigned int i=1 ; i <= M.mesh.y_coordinates.size()-1 ; i++ )
+		{ 
+			axpy( &M.thomas_denomy[i] , M.thomas_constant1 , M.thomas_cy[i-1] ); 
+			M.thomas_cy[i] /= M.thomas_denomy[i]; // the value at  size-1 is not actually used  
+		}
+
+		M.thomas_cz.assign( M.mesh.z_coordinates.size() , M.thomas_constant1a ); 
+		M.thomas_denomz.assign( M.mesh.z_coordinates.size()  , M.thomas_constant3 ); 
+		M.thomas_denomz[0] = M.thomas_constant3a; 
+		M.thomas_denomz[ M.mesh.z_coordinates.size()-1 ] = M.thomas_constant3a; 
+		if( M.mesh.z_coordinates.size() == 1 )
+		{ M.thomas_denomz[0] = M.one; M.thomas_denomz[0] += M.thomas_constant2; } 
+
+		M.thomas_cz[0] /= M.thomas_denomz[0]; 
+		for( unsigned int i=1 ; i <= M.mesh.z_coordinates.size()-1 ; i++ )
+		{ 
+			axpy( &M.thomas_denomz[i] , M.thomas_constant1 , M.thomas_cz[i-1] ); 
+			M.thomas_cz[i] /= M.thomas_denomz[i]; // the value at  size-1 is not actually used  
+		}	
+
+		M.diffusion_solver_setup_done = true; 
+	}
+
+	if (M.openacc_data_bool == false){
+		std::cout << "transfering to device" << std::endl;
+		M.transfer_3D();
+		std::cout << "-continuing-" << std::endl;
+		M.openacc_data_bool = true;
+	}
+	else {
+		//M.translate_vector_to_array(); // used for updating Device if work
+		// was done on Host
+	}
+
+	
+	M.apply_dirichlet_conditions_GPU();
+
+	// z-diffusion on gpu
+	M.x_diffusion_GPU_3D();
+
+	M.apply_dirichlet_conditions_GPU();
+
+	// y-diffusion on gpu
+	M.y_diffusion_GPU_3D();
+
+	M.apply_dirichlet_conditions_GPU();
+
+	// z-diffusion on gpu 
+	M.z_diffusion_GPU_3D();
+
+	M.apply_dirichlet_conditions_GPU();
+
+	// reset gradient vectors 
+	//M.reset_all_gradient_vectors(); 
+
+	return; 
+}
+
 void diffusion_decay_solver__constant_coefficients_LOD_2D( Microenvironment& M, double dt )
 {
 	if( M.mesh.regular_mesh == false )
@@ -447,6 +582,114 @@ void diffusion_decay_solver__constant_coefficients_LOD_2D( Microenvironment& M, 
 	
 	// reset gradient vectors 
 //	M.reset_all_gradient_vectors(); 
+	
+	return; 
+}
+
+void diffusion_decay_solver__constant_coefficients_LOD_2D_GPU( Microenvironment& M, double dt )
+{
+	if( M.mesh.uniform_mesh == false )
+	{
+		std::cout << "Error: This algorithm is written for uniform Cartesian meshes. Try: something else." << std::endl << std::endl; 
+		return; 
+	}
+	
+	// constants for the linear solver (Thomas algorithm) 
+	
+	if( !M.diffusion_solver_setup_done )
+	{
+		std::cout << std::endl << "Using method " << __FUNCTION__ << " (2D LOD with Thomas Algorithm) ... " << std::endl << std::endl;  
+		
+		M.thomas_denomx.resize( M.mesh.x_coordinates.size() , M.zero );
+		M.thomas_cx.resize( M.mesh.x_coordinates.size() , M.zero );
+
+		M.thomas_denomy.resize( M.mesh.y_coordinates.size() , M.zero );
+		M.thomas_cy.resize( M.mesh.y_coordinates.size() , M.zero );
+		
+		// define constants and pre-computed quantities 
+
+		M.thomas_i_jump = 1; 
+		M.thomas_j_jump = M.mesh.x_coordinates.size(); 
+
+		M.thomas_constant1 =  M.diffusion_coefficients; //   dt*D/dx^2 
+		M.thomas_constant1a = M.zero; // -dt*D/dx^2; 
+		M.thomas_constant2 =  M.decay_rates; // (1/2)*dt*lambda 
+		M.thomas_constant3 = M.one; // 1 + 2*constant1 + constant2; 
+		M.thomas_constant3a = M.one; // 1 + constant1 + constant2; 
+		
+		M.thomas_constant1 *= dt; 
+		M.thomas_constant1 /= M.mesh.dx; 
+		M.thomas_constant1 /= M.mesh.dx; 
+
+		M.thomas_constant1a = M.thomas_constant1; 
+		M.thomas_constant1a *= -1.0; 
+
+		M.thomas_constant2 *= dt; 
+		M.thomas_constant2 *= 0.5; // for splitting via LOD
+
+		M.thomas_constant3 += M.thomas_constant1; 
+		M.thomas_constant3 += M.thomas_constant1; 
+		M.thomas_constant3 += M.thomas_constant2; 
+
+		M.thomas_constant3a += M.thomas_constant1; 
+		M.thomas_constant3a += M.thomas_constant2; 
+		
+		// Thomas solver coefficients 
+
+		M.thomas_cx.assign( M.mesh.x_coordinates.size() , M.thomas_constant1a ); 
+		M.thomas_denomx.assign( M.mesh.x_coordinates.size()  , M.thomas_constant3 ); 
+		M.thomas_denomx[0] = M.thomas_constant3a; 
+		M.thomas_denomx[ M.mesh.x_coordinates.size()-1 ] = M.thomas_constant3a; 
+		if( M.mesh.x_coordinates.size() == 1 )
+		{ M.thomas_denomx[0] = M.one; M.thomas_denomx[0] += M.thomas_constant2; } 
+
+		M.thomas_cx[0] /= M.thomas_denomx[0]; 
+		for( unsigned int i=1 ; i <= M.mesh.x_coordinates.size()-1 ; i++ )
+		{ 
+			axpy( &M.thomas_denomx[i] , M.thomas_constant1 , M.thomas_cx[i-1] ); 
+			M.thomas_cx[i] /= M.thomas_denomx[i]; // the value at  size-1 is not actually used  
+		}
+
+		M.thomas_cy.assign( M.mesh.y_coordinates.size() , M.thomas_constant1a ); 
+		M.thomas_denomy.assign( M.mesh.y_coordinates.size()  , M.thomas_constant3 ); 
+		M.thomas_denomy[0] = M.thomas_constant3a; 
+		M.thomas_denomy[ M.mesh.y_coordinates.size()-1 ] = M.thomas_constant3a; 
+		if( M.mesh.y_coordinates.size() == 1 )
+		{ M.thomas_denomy[0] = M.one; M.thomas_denomy[0] += M.thomas_constant2; } 
+
+		M.thomas_cy[0] /= M.thomas_denomy[0]; 
+		for( unsigned int i=1 ; i <= M.mesh.y_coordinates.size()-1 ; i++ )
+		{ 
+			axpy( &M.thomas_denomy[i] , M.thomas_constant1 , M.thomas_cy[i-1] ); 
+			M.thomas_cy[i] /= M.thomas_denomy[i]; // the value at  size-1 is not actually used  
+		}
+
+		M.diffusion_solver_setup_done = true; 
+	}
+	if (M.openacc_data_bool == false){
+		M.transfer_2D();
+		M.openacc_data_bool = true;
+	}
+	else {
+		//M.translate_vector_to_array() // comment out for exclusive device
+	}
+
+	// set the pointer
+	
+	M.apply_dirichlet_conditions_GPU();
+
+	// x-diffusion on gpu
+	M.x_diffusion_GPU_2D();
+
+	M.apply_dirichlet_conditions_GPU();
+
+	// y-diffusion on gpu
+	M.y_diffusion_GPU_2D();
+
+	M.apply_dirichlet_conditions_GPU();
+
+	// reset gradient vectors 
+	//M.reset_all_gradient_vectors(); 
 	
 	return; 
 }
