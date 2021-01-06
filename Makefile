@@ -70,9 +70,13 @@ EXAMPLES := ./examples/PhysiCell_test_mechanics_1.cpp ./examples/PhysiCell_test_
  ./examples/PhysiCell_test_DCIS.cpp ./examples/PhysiCell_test_HDS.cpp \
  ./examples/PhysiCell_test_cell_cycle.cpp ./examples/PhysiCell_test_volume.cpp 
 
-all: 
-	make heterogeneity-sample
-	make 
+#all: 
+#	make heterogeneity-sample
+#	make
+
+#BEFORE MERGE                                                                                       
+all: main.cpp $(ALL_OBJECTS)
+        $(COMPILE_COMMAND) -o $(PROGRAM_NAME) $(ALL_OBJECTS) main.cpp
 
 # sample projects 	
 list-projects:
@@ -191,9 +195,6 @@ examples: $(PhysiCell_OBJECTS)
 	$(COMPILE_COMMAND) -o ./examples/test_volume ./examples/PhysiCell_test_volume.cpp $(PhysiCell_OBJECTS)
 
 
-#BEFORE MERGE	
-all: main.cpp $(ALL_OBJECTS)
-	$(COMPILE_COMMAND) -o $(PROGRAM_NAME) $(ALL_OBJECTS) main.cpp 
 
 
 # PhysiCell core components	
