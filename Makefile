@@ -1,6 +1,8 @@
 VERSION := $(shell grep . VERSION.txt | cut -f1 -d:)
-PROGRAM_NAME := cancer_immune_3D
+PROGRAM_NAME := cancer_immune_3D #Matt OpenACC
+#PROGRAM_NAME := project (Current upstream repo)
 
+#Compiler------------------------------------
 CC := g++
 PGI := pgc++
 # CC := g++-mp-7 # typical macports compiler name
@@ -12,6 +14,7 @@ ifdef PHYSICELL_CPP
 	CC := $(PHYSICELL_CPP)
 endif
 
+#Architecture--------------------------------
 ARCH := native # best auto-tuning
 # ARCH := core2 # a reasonably safe default for most CPUs since 2007
 # ARCH := corei7
@@ -28,8 +31,9 @@ ARCH := native # best auto-tuning
 # ARCH := bonnell
 # ARCH := silvermont
 # ARCH := skylake-avx512
-# ARCH := nocona #64-bit pentium 4 or later 
+# ARCH := nocona #64-bit pentium 4 or later
 
+#Flags--------------------------------------
 # CFLAGS := -march=$(ARCH) -Ofast -s -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11
 CFLAGS := -march=$(ARCH) -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11
 # ACCFLAGS := used for GPU and PGI
@@ -38,43 +42,45 @@ ACCFLAGS := -std=c++11 -Minline -Minfo=accel -acc -ta=tesla:managed
 #ACCFLAGS := -std=c++11 -Minline -Minfo=accel -acc -ta=host
 #ACCFLAGS := -std=c++11 -Minline -Minfo=accel -acc -ta=multicore
 
+
+#Compiling Command---------------------------
 #COMPILE_COMMAND := $(CC) $(CFLAGS) 
 COMPILE_COMMAND := $(PGI) $(ACCFLAGS) 
-
 ACC_COMPILE_COMMAND := $(PGI) $(ACCFLAGS)
 
+
+#Objects-------------------------------------
 BioFVM_OBJECTS := BioFVM_vector.o BioFVM_mesh.o BioFVM_microenvironment.o BioFVM_solvers.o BioFVM_matlab.o \
 BioFVM_utilities.o BioFVM_basic_agent.o BioFVM_MultiCellDS.o BioFVM_agent_container.o 
-
 
 PhysiCell_core_OBJECTS := PhysiCell_phenotype.o PhysiCell_cell_container.o PhysiCell_standard_models.o \
 PhysiCell_cell.o PhysiCell_custom.o PhysiCell_utilities.o PhysiCell_constants.o
 
-#BEFORE MERGE
-#PhysiCell_core_OBJECTS := PhysiCell_phenotype.o PhysiCell_cell_container.o PhysiCell_standard_models.o PhysiCell_cell.o PhysiCell_custom.o PhysiCell_utilities.o 
-
-PhysiCell_module_OBJECTS := PhysiCell_SVG.o PhysiCell_pathology.o PhysiCell_MultiCellDS.o PhysiCell_various_outputs.o \
-PhysiCell_pugixml.o PhysiCell_settings.o
-
-# put your custom objects here (they should be in the custom_modules directory)
-
-PhysiCell_custom_module_OBJECTS := cancer_immune_3D.o
+PhysiCell_module_OBJECTS := PhysiCell_SVG.o PhysiCell_pathology.o PhysiCell_MultiCellDS.o PhysiCell_various_outputs.o PhysiCell_pugixml.o PhysiCell_settings.o
 
 pugixml_OBJECTS := pugixml.o
 
-PhysiCell_OBJECTS := $(BioFVM_OBJECTS)  $(pugixml_OBJECTS) $(PhysiCell_core_OBJECTS) $(PhysiCell_module_OBJECTS)
+PhysiCell_OBJECTS := $(BioFVM_OBJECTS) $(pugixml_OBJECTS) $(PhysiCell_core_OBJECTS) $(PhysiCell_module_OBJECTS)
+
+#Custom Objects (they should be in the custom_modules directory)
+PhysiCell_custom_module_OBJECTS := cancer_immune_3D.o
+
 ALL_OBJECTS := $(PhysiCell_OBJECTS) $(PhysiCell_custom_module_OBJECTS)
 
-
+#Examples-------------------------------------
 EXAMPLES := ./examples/PhysiCell_test_mechanics_1.cpp ./examples/PhysiCell_test_mechanics_2.cpp \
  ./examples/PhysiCell_test_DCIS.cpp ./examples/PhysiCell_test_HDS.cpp \
  ./examples/PhysiCell_test_cell_cycle.cpp ./examples/PhysiCell_test_volume.cpp 
 
-#all: 
+
+
+#Targets+Rules----------------------------------------
+#(Current upstream repo)
+#all:
 #	make heterogeneity-sample
 #	make
 
-#BEFORE MERGE                                                                                       
+#(Matt OpenACC)
 all: main.cpp $(ALL_OBJECTS)
         $(COMPILE_COMMAND) -o $(PROGRAM_NAME) $(ALL_OBJECTS) main.cpp
 
