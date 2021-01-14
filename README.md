@@ -1,8 +1,8 @@
 # PhysiCell: an Open Source Physics-Based Cell Simulator for 3-D Multicellular Systems.
 
-**Version:**      1.6.0
+**Version:** 1.7.1
 
-**Release date:** 20 August 2019
+**Release date:** 2 June 2020
 
 ## Overview: 
 PhysiCell is a flexible open source framework for building agent-based multicellular models in 3-D tissue environments.
@@ -32,6 +32,9 @@ Visit http://MathCancer.org/blog for the latest tutorials and help.
     heterogeneity-sample
     cancer-immune-sample 
     virus-macrophage-sample
+    template
+
+**make list-projects** : list all available sample projects 
 
 **make clean**         : removes all .o files and the executable, so that the next "make" recompiles the entire project 
 
@@ -57,97 +60,74 @@ Visit http://MathCancer.org/blog for the latest tutorials and help.
 See changes.md for the full change log. 
 
 * * * 
-
 ## Release summary: 
 
-This release introduces a new XML-based configuration for the chemical microenvironment. All 
-the sample projects have been updated to use this new functionality. There is no change 
-in APIs or high-level usage / syntax for end users; old projects should continue to work without 
-modification, although we highly recommend migrating to the simplified microenvironment setup. 
-A short blog tutorial on this new functionality can be found at 
-
-http://mathcancer.org/blog/setting-up-the-physicell-microenvironment-with-xml
+This release introduces bug fixes (particularly the placement of daughter cells after division), introduces new functions for uniformly random sampling of the unit circle and unit sphere, and refines the beta implementation of XML-based cell definitions. 
 
 **NOTE:** OSX users must now define PHYSICELL_CPP system variable. See the documentation.
  
 ### Major new features and changes:
 
-+ XML-based setup of the chemical microenvironment.  
- 
++ No major changes. See 1.7.0 for most recent major changes. 
+
 ### Minor new features and changes: 
- 
-+ Updated template2D sample project: 
-  + Refined "reset" and "data-cleanup" rules in Makefile
-  + Converted project to use the new XML-based microenvironment setup. 
 
-+ Updated template3D sample project: 
-  + Refined "reset" and "data-cleanup" rules in Makefile
-  + Converted project to use the new XML-based microenvironment setup. 
++ Created new function std::vector<double> UniformOnUnitSphere( void ) that returns a (uniformly) random vector (x,y,z) on the unit sphere. 
 
-+ Updated heterogeneity sample project: 
-  + Refined "reset" and "data-cleanup" rules in Makefile
-  + Converted project to use the new XML-based microenvironment setup. 
++ Created new function std::vector<double> UniformOnUnitCircle( void ) that returns a (uniformly) random vector (x,y,0) on the unit circle (in the z = 0 plane).  
 
-+ Updated cancer immune sample rpoject: 
-  + Refined "reset" and "data-cleanup" rules in Makefile
-  + Converted project to use the new XML-based microenvironment setup. 
++ Created std::vector<double> LegacyRandomOnUnitSphere() that reproduces old behaviors of creating a random vector on the unit sphere. Never use this except if trying to replicate old results. Always use UniformOnUnitSphere() instead. 
 
-+ Updated virus macrophage sample project: 
-  + Refined "reset" and "data-cleanup" rules in Makefile
-  + Converted project to use the new XML-based microenvironment setup. 
-  + Enabled gradient calculations (were previously off, although we wanted macrophage chemotaxis) 
++ Changed default placement of daughter cells to use UniformOnUnitCircle(), in response to longstanding "future plan" to "introduce improvements to placement of daughter cells after division."
 
-+ Updated biorobots sample project: 
-  + Refined "reset" and "data-cleanup" rules in Makefile. 
-  + Converted project to use the new XML-based microenvironment setup.
-  + Note that values in user_parameters will override values in microenvironment_setup. 
-  + Improved project to properly search for substrate indices instead of hard coding them. 
++ All sample projects now check for <options> in their XML config files. 
 
-+ Updated cancer biorobots sample project: 
-  + Refined "reset" rule in Makefile. 
-  + Converted project to use the new XML-based microenvironment setup.
-  + Improved project to properly search for substrate indices instead of hard coding them. 
++ Template projects calculate gradients and perform internal substrate tracking by default. 
 
-+ Refined "reset" and "data-cleanup" rules in default Makefile 
++ Moved the bool is_active from "protected" to "public" in the Basic_Agent class in BioFVM_basic_agent.h, so that cells be be moved back into the domain and reactivated as needed. 
 
-+ Created new function to access the (private) microenvironment dirichlet_activation_vector: 
- 
-double Microenvironment::get_substrate_dirichlet_activation( int substrate_index ); 
++ Changed beta implementation of XML cell definitions: 
+  + In cycle, transition_rates renamed to phase_transition_rates. PhysiCell will give a deprecatoin warning for transition_rates until the official release of XML cell definitions. 
+  + In death, rates renamed to death_rates. PhysiCell will give a deprecatoin warning for transition_rates until the official release of XML cell definitions. 
+  + In cycle and death, "phase_durations" can now be used in place of phase_transition rates. This may be more intuitive for some modelers. 
 
-+ Updated the main microenvironment display function Microenvironment::display_information to summarize the initial and boundary conditions for each substrate 
++ See 1.7.0 for other recent minor changes.
 
-+ Wrote two new functions to parse the XML in microenvironment_setup to add substrates and 
-options:  
-  + bool setup_microenvironment_from_XML( pugi::xml_node root_node )
-  + bool setup_microenvironment_from_XML( void )
-The second one assumes you already defined the root node and access the 
-global (pugi)xml node for it. 
-
-+ The main XML parsing function now calls setup_microenvironment_from_XML(), just before processing user-defined parameters. 
- 
 ### Beta features (not fully supported):
  
-+ anim_svg.py - now plots correctly sized cells; manually step via arrow keys
-
-+ anim_svg_cycle.py - same as above, but automatically cycles through .svg files
++ Cell definitions can now be defined by XML files. See the note above. This functionality may be additionally refined or modified in the next few releases while still in beta. 
   
 ### Bugfixes: 
 
-+ None.
- 
++ In response to SourceForge ticket 26, fixed placement of parent cell in Cell::divide()
+
++ Removed errant Cell_Definition in the new template sample project. 
+
++ Added an extra check for bad chemotaxis definitions in response ot SourceForge ticket 28. 
+
++ Fixed bugs in processing of the "death" section of XML cell definitions.  
+
 ### Notices for intended changes that may affect backwards compatibility:
  
 + We intend to merge Custom_Variable and Custom_Vector_Variable in the very near future.  
 
 + We may change the role of operator() and operator[] in Custom_Variable to more closely mirror the functionality in Parameters<T>. 
 
-+ We will introduce improvements to placement of daughter cells after division. 
-
 + Some search functions (e.g., to find a substrate or a custom variable) will start to return -1 if no matches are found, rather than 0. 
+ 
++ We will change the timing of when entry_functions are executed within cycle models. Right now, they are evaluated immediately after the exit from the preceding phase (and prior to any cell division events), which means that only the parent cell executes it, rather htan both daughter cells. Instead, we'll add an internal Boolean for "just exited a phase", and use this to exucte the entry function at the next cycle call. This should make daughter cells independently execute the entry function. 
+
++ We might make "trigger_death" clear out all the cell's functions, or at least add an option to do this. 
 
 ### Planned future improvements: 
+
++ Methods or scripts to make "upgrading" PhysiCell easier for existing projects (to avoid overwriting the config file, Makefile, or custom files. 
  
++ Current "template" project will be rolled into a new "predator-prey" sample project, and "template" will be tidied up. 
+
 + Further XML-based simulation setup. 
+
++ current sample projects will be refactored to use XML cdell definitions. 
  
 + read saved simulation states (as MultiCellDS digital snapshots)
  

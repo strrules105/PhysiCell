@@ -1,4 +1,5 @@
 VERSION := $(shell grep . VERSION.txt | cut -f1 -d:)
+#PROGRAM_NAME := project
 PROGRAM_NAME := cancer_immune_3D
 
 CC := g++
@@ -50,7 +51,12 @@ NV_ACC_COMPILE_COMMAND := $(NV) $(NVACCFLAGS)
 BioFVM_OBJECTS := BioFVM_vector.o BioFVM_mesh.o BioFVM_microenvironment.o BioFVM_solvers.o BioFVM_matlab.o \
 BioFVM_utilities.o BioFVM_basic_agent.o BioFVM_MultiCellDS.o BioFVM_agent_container.o 
 
-PhysiCell_core_OBJECTS := PhysiCell_phenotype.o PhysiCell_cell_container.o PhysiCell_standard_models.o PhysiCell_cell.o PhysiCell_custom.o PhysiCell_utilities.o 
+
+# PhysiCell_core_OBJECTS := PhysiCell_phenotype.o PhysiCell_cell_container.o PhysiCell_standard_models.o PhysiCell_cell.o PhysiCell_custom.o PhysiCell_utilities.o
+
+PhysiCell_core_OBJECTS := PhysiCell_phenotype.o PhysiCell_cell_container.o PhysiCell_standard_models.o \
+PhysiCell_cell.o PhysiCell_custom.o PhysiCell_utilities.o PhysiCell_constants.o
+
 
 PhysiCell_module_OBJECTS := PhysiCell_SVG.o PhysiCell_pathology.o PhysiCell_MultiCellDS.o PhysiCell_various_outputs.o \
 PhysiCell_pugixml.o PhysiCell_settings.o
@@ -63,9 +69,82 @@ pugixml_OBJECTS := pugixml.o
 
 PhysiCell_OBJECTS := $(BioFVM_OBJECTS)  $(pugixml_OBJECTS) $(PhysiCell_core_OBJECTS) $(PhysiCell_module_OBJECTS)
 ALL_OBJECTS := $(PhysiCell_OBJECTS) $(PhysiCell_custom_module_OBJECTS)
-	
+
+
+EXAMPLES := ./examples/PhysiCell_test_mechanics_1.cpp ./examples/PhysiCell_test_mechanics_2.cpp \
+ ./examples/PhysiCell_test_DCIS.cpp ./examples/PhysiCell_test_HDS.cpp \
+ ./examples/PhysiCell_test_cell_cycle.cpp ./examples/PhysiCell_test_volume.cpp 
+
+
 all: main.cpp $(ALL_OBJECTS)
 	$(NV_ACC_COMPILE_COMMAND) -o $(PROGRAM_NAME) $(ALL_OBJECTS) main.cpp 
+
+
+#all: 
+#	make heterogeneity-sample
+#	make 
+
+# sample projects 	
+list-projects:
+	@echo "Sample projects: template2D template3D biorobots-sample cancer-biorobots-sample heterogeneity-sample"
+	@echo "                 cancer-immune-sample virus-macrophage-sample template"
+	
+template2D: 
+	cp ./sample_projects/template2D/custom_modules/* ./custom_modules/
+	touch main.cpp && cp main.cpp main-backup.cpp
+	cp ./sample_projects/template2D/main-2D.cpp ./main.cpp 
+	cp Makefile Makefile-backup
+	cp ./sample_projects/template2D/Makefile .
+	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml 
+	cp ./sample_projects/template2D/config/* ./config/
+	
+template3D: 	
+	cp ./sample_projects/template3D/custom_modules/* ./custom_modules/
+	touch main.cpp && cp main.cpp main-backup.cpp
+	cp ./sample_projects/template3D/main-3D.cpp ./main.cpp 
+	cp Makefile Makefile-backup
+	cp ./sample_projects/template3D/Makefile .
+	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml 
+	cp ./sample_projects/template3D/config/* ./config/
+	
+template:
+	cp ./sample_projects/template/custom_modules/* ./custom_modules/
+	touch main.cpp && cp main.cpp main-backup.cpp
+	cp ./sample_projects/template/main.cpp ./main.cpp 
+	cp Makefile Makefile-backup
+	cp ./sample_projects/template/Makefile .
+	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml 
+	cp ./sample_projects/template/config/* ./config/
+	
+# sample projects 
+
+biorobots-sample:
+	cp ./sample_projects/biorobots/custom_modules/* ./custom_modules/
+	touch main.cpp && cp main.cpp main-backup.cpp
+	cp ./sample_projects/biorobots/main-biorobots.cpp ./main.cpp 
+	cp Makefile Makefile-backup
+	cp ./sample_projects/biorobots/Makefile .
+	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml 
+	cp ./sample_projects/biorobots/config/* ./config/
+	
+cancer-biorobots-sample:
+	cp ./sample_projects/cancer_biorobots/custom_modules/* ./custom_modules/
+	touch main.cpp && cp main.cpp main-backup.cpp
+	cp ./sample_projects/cancer_biorobots/main-cancer_biorobots.cpp ./main.cpp 
+	cp Makefile Makefile-backup
+	cp ./sample_projects/cancer_biorobots/Makefile .
+	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml 
+	cp ./sample_projects/cancer_biorobots/config/* ./config/
+	
+heterogeneity-sample:
+	cp ./sample_projects/heterogeneity/custom_modules/* ./custom_modules/
+	touch main.cpp && cp main.cpp main-backup.cpp
+	cp ./sample_projects/heterogeneity/main-heterogeneity.cpp ./main.cpp 
+	cp Makefile Makefile-backup
+	cp ./sample_projects/heterogeneity/Makefile .
+	cp ./config/PhysiCell_settings.xml ./config/PhysiCell_settings-backup.xml 
+	cp ./sample_projects/heterogeneity/config/* ./config/
+
 
 # PhysiCell core components	
 
@@ -89,6 +168,9 @@ PhysiCell_utilities.o: ./core/PhysiCell_utilities.cpp
 	
 PhysiCell_custom.o: ./core/PhysiCell_custom.cpp
 	$(NV_ACC_COMPILE_COMMAND) -c ./core/PhysiCell_custom.cpp 
+	
+PhysiCell_constants.o: ./core/PhysiCell_constants.cpp
+	$(COMPILE_COMMAND) -c ./core/PhysiCell_constants.cpp 
 	
 # BioFVM core components (needed by PhysiCell)
 	
@@ -166,11 +248,15 @@ data-cleanup:
 	rm -f *.mat
 	rm -f *.xml
 	rm -f *.svg
-	#rm -f ./output/*
 	find ./output/ -not -name '*.py*' -exec rm -f {} \;
+	#rm -rf ./output
+	#mkdir ./output
 	touch ./output/empty.txt
 	
 # archival 
+
+checkpoint: 
+	zip -r $$(date +%b_%d_%Y_%H%M).zip Makefile *.cpp *.h config/*.xml custom_modules/* 
 	
 zip:
 	zip -r latest.zip Makefile* *.cpp *.h BioFVM/* config/* core/* custom_modules/* matlab/* modules/* sample_projects/* 

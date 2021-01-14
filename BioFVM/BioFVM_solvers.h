@@ -58,6 +58,7 @@ namespace BioFVM{
 void diffusion_decay_solver__constant_coefficients_LOD_3D( Microenvironment& M, double dt ); // done
 // /*! diffusion-decay solver: 2D LOD implicit (stable method). D and r uniform */  
 void diffusion_decay_solver__constant_coefficients_LOD_2D( Microenvironment& M, double dt ); // done
+void diffusion_decay_solver__constant_coefficients_LOD_1D( Microenvironment& M, double dt ); // done
 
 // GPU 3D
 void diffusion_decay_solver__constant_coefficients_LOD_3D_GPU( Microenvironment& M, double dt );
