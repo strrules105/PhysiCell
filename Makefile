@@ -47,6 +47,7 @@ COMPILE_COMMAND := $(CC) $(CFLAGS)
 ACC_COMPILE_COMMAND := $(PGI) $(ACCFLAGS)
 
 NV_ACC_COMPILE_COMMAND := $(NV) $(NVACCFLAGS)
+NV_ACC_COMPILE_COMMAND := $(ACC_COMPILE_COMMAND)
 
 BioFVM_OBJECTS := BioFVM_vector.o BioFVM_mesh.o BioFVM_microenvironment.o BioFVM_solvers.o BioFVM_matlab.o \
 BioFVM_utilities.o BioFVM_basic_agent.o BioFVM_MultiCellDS.o BioFVM_agent_container.o 
