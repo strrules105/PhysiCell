@@ -243,6 +243,7 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 
 void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double mechanics_dt_ , double diffusion_dt_ )
 {
+	printf("ENTERED HERE!!!!!! UPDATE_ALL_CELLS: t:%.2f, phento_dt:%.2f, mechanics_dt:%.2f, diffusion_dt:%.2f\n",t,phenotype_dt_,mechanics_dt_,diffusion_dt_);
 	// secretions and uptakes. Syncing with BioFVM is automated. 
 
 	#pragma omp parallel for 

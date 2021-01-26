@@ -155,6 +155,7 @@ int main( int argc, char* argv[] )
 
 	BioFVM::RUNTIME_TIC();
 	BioFVM::TIC();
+
 	
 	std::ofstream report_file;
 	if( PhysiCell_settings.enable_legacy_saves == true )
@@ -166,17 +167,19 @@ int main( int argc, char* argv[] )
 	}
 
 	//set the diffusion solver to GPU
-	microenvironment.diffusion_decay_solver = diffusion_decay_solver__constant_coefficients_LOD_3D_GPU;
+	microenvironment.diffusion_decay_solver = diffusion_decay_solver__constant_coefficients_LOD_3D_GPU; //function pointer
 	bool first = true;
-	
 	int outs = 0;
 
+	printf("MAXTIME:%.2f, ACTUAL MAXTIME:%.2f\n",PhysiCell_settings.max_time,PhysiCell_settings.max_time + 0.1*diffusion_dt);
+
 	// main loop 
-	
 	try 
 	{	
 		while( PhysiCell_globals.current_time < PhysiCell_settings.max_time + 0.1*diffusion_dt )
 		{
+
+
 			if (outs == 1){
 				microenvironment.translate_array_to_vector();
 				sprintf( filename , "%s/first_out" , PhysiCell_settings.folder.c_str() ); 
@@ -184,6 +187,7 @@ int main( int argc, char* argv[] )
 			}
 
 
+			/*Checks whether or not to introduce immune cells*/
 			static bool immune_cells_introduced = false; 
 			if( PhysiCell_globals.current_time > immune_activation_time - 0.01*diffusion_dt && immune_cells_introduced == false )
 			{
@@ -210,7 +214,12 @@ int main( int argc, char* argv[] )
 					microenvironment.translate_array_to_vector();
 					std::cout << "-------continuing-------" << std::endl;
 				}
-				first = false;
+				/*Only trasnfer after the first time iteration*/
+				else{
+					first = false;
+				}
+
+				
 				display_simulation_status( std::cout ); 
 				if( PhysiCell_settings.enable_legacy_saves == true )
 				{	
@@ -231,11 +240,15 @@ int main( int argc, char* argv[] )
 			// save SVG plot if it's time
 			if( fabs( PhysiCell_globals.current_time - PhysiCell_globals.next_SVG_save_time  ) < 0.01 * diffusion_dt )
 			{
+				printf("SAVING SVG AT CURRENT TIME:%.2f, NEXT SVG SAVE TIME:%.2f\n",PhysiCell_globals.current_time,PhysiCell_globals.next_SVG_save_time);
 				std::cout << "2" << std::endl;
+
+				
 				if( PhysiCell_settings.enable_SVG_saves == true )
 				{	
 					sprintf( filename , "%s/snapshot%08u.svg" , PhysiCell_settings.folder.c_str() , PhysiCell_globals.SVG_output_index ); 
 					SVG_plot( filename , microenvironment, 0.0 , PhysiCell_globals.current_time, cell_coloring_function );
+					
 					
 					PhysiCell_globals.SVG_output_index++; 
 					PhysiCell_globals.next_SVG_save_time  += PhysiCell_settings.SVG_save_interval;
@@ -248,20 +261,20 @@ int main( int argc, char* argv[] )
 			// { microenvironment.compute_all_gradient_vectors(); }
 			
 			// run PhysiCell 
-			// ((Cell_Container *)microenvironment.agent_container)->update_all_cells( PhysiCell_globals.current_time );
+			((Cell_Container *)microenvironment.agent_container)->update_all_cells( PhysiCell_globals.current_time );
 			
 			
 			// manually call the code for cell sources and sinks, 
 			// since these are ordinarily automatically done as part of phenotype.secretion in the 
 			// PhysiCell update that we commented out above. Remove this when we go 
 			// back to main code 
-/*			
-			#pragma omp parallel for 
-			for( int i=0; i < (*all_cells).size(); i++ )
-			{
-				(*all_cells)[i]->phenotype.secretion.advance( (*all_cells)[i], (*all_cells)[i]->phenotype , diffusion_dt );
-			}			
-*/			
+			
+			// #pragma omp parallel for 
+			// for( int i=0; i < (*all_cells).size(); i++ )
+			// {
+			// 	(*all_cells)[i]->phenotype.secretion.advance( (*all_cells)[i], (*all_cells)[i]->phenotype , diffusion_dt );
+			// }			
+			
 			PhysiCell_globals.current_time += diffusion_dt;
 			outs++;
 		}
@@ -278,7 +291,7 @@ int main( int argc, char* argv[] )
 	}
 	
 	// save a final simulation snapshot 
-	microenvironment.translate_array_to_vector();
+	microenvironment.translate_array_to_vector(); //Matt's code
 
 	std::cout << "NUM_DIRICHLET " << microenvironment.num_dirichlet << std::endl;
 	

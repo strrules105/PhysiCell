@@ -96,8 +96,10 @@
 	</domain>
 	
 	<overall>
-                <!-- Matt -->	  
-	        <max_time units="min">120.0</max_time>
+			<!-- Matt -->	  
+		<!-- <max_time units="min">120.0</max_time> -->
+
+		<max_time units="min">3.0</max_time>
 		<!-- <max_time units="min">7200</max_time> --> <!-- 5 days * 24 h * 60 min -->
 		<time_units>min</time_units>
 		<space_units>micron</space_units>
@@ -115,7 +117,7 @@
 	<save>
 		<folder>output</folder> <!-- use . for root --> 
 
-		<full_data>
+		<!-- <full_data>
 			<interval units="min">60</interval>
 			<enable>true</enable>
 		</full_data>
@@ -123,6 +125,16 @@
 		<SVG>
 			<interval units="min">60</interval>
 			<enable>false</enable>
+		</SVG> -->
+
+		<full_data>
+			<interval units="min">1.0</interval>
+			<enable>true</enable>
+		</full_data>
+		
+		<SVG>
+			<interval units="min">1.0</interval>
+			<enable>true</enable>
 		</SVG>
 		
 		<legacy_data>
@@ -389,7 +401,10 @@
 		<!-- Matt's code main --> 
 		<immune_activation_time type="double" units="min">20160</immune_activation_time>
 			<!-- activate in 7 days --> 
-		<save_interval_after_therapy_start type="double" units="min">3.0</save_interval_after_therapy_start>
+		<!-- <save_interval_after_therapy_start type="double" units="min">3.0</save_interval_after_therapy_start> -->
+
+		<!-- Miguel code main for debugging -->
+		<save_interval_after_therapy_start type="double" units="min">1.0</save_interval_after_therapy_start>
 		
 		<!-- immune cell properties --> 
 		<immune_o2_relative_uptake type="double" units="dimensionless">0.1</immune_o2_relative_uptake>
