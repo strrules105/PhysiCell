@@ -140,10 +140,79 @@ class Cell_State
  public:
 	std::vector<Cell*> neighbors; // not currently tracked! 
 	std::vector<double> orientation;
-	
 	double simple_pressure; 
 	
 	Cell_State(); 
+};
+
+class Cell_GPU_UpdateAll_Secretion_Advance{
+	private:
+
+	public:
+		/*Basic_Agent -> Cell -> 'microenvironment' fields*/
+		//int microenv_number_of_densities;
+
+		/*Basic_Agent -> Cell -> Phenotype -> 'secretion' fields*/
+		/*double * secretion_rates;
+		double * update_rates;
+		double * saturation_densities;
+		double * net_export_rates;*/
+
+		/*GPU Version of void Basic_Agent::simulate_secretion_and_uptake( Microenvironment* pS, double dt )*/
+		bool *is_active_GPU;
+		bool *volume_is_changed_GPU;
+
+		double *total_extracellular_substrate_change_GPU; //Pointer to array of doubles (total_extracellular_substrate_change)
+		int total_extracellular_substrate_change_GPU_size;
+
+		double *pS_current_voxel_index_arr_GPU; //Pointer to array of doubles ((*pS)(current_voxel_index))
+		int pS_current_voxel_index_arr_GPU_size;
+
+		double *internalized_substrates_GPU; //Pointer to array of doubles (internalized_substrates)
+		int internalized_substrates_GPU_size;
+
+		double* cell_source_sink_solver_temp1_GPU;
+		int cell_source_sink_solver_temp1_GPU_size;
+
+		double* cell_source_sink_solver_temp2_GPU;
+		int cell_source_sink_solver_temp2_GPU_size;
+
+		double* cell_source_sink_solver_temp_export1_GPU; 
+		int cell_source_sink_solver_temp_export1_GPU_size;
+
+		double* cell_source_sink_solver_temp_export2_GPU; 	
+		int cell_source_sink_solver_temp_export2_GPU_size;
+
+
+		Cell_GPU_UpdateAll_Secretion_Advance();
+		Cell_GPU_UpdateAll_Secretion_Advance(Cell *cell);
+		~Cell_GPU_UpdateAll_Secretion_Advance();
+		void copy_Cell_GPU_to_device();
+
+		#pragma acc routine
+		void simulate_secretion_and_uptake_GPU(Microenvironment* pS, double dt);
+
+		#pragma acc routine
+		void addArrs(double *arr1, int &arr1_size, double *arr2, int &arr2_size);
+
+		#pragma acc routine
+		void multiArrs(double *arr1, int &arr1_size, double *arr2, int &arr2_size);
+
+		#pragma acc routine
+		void subArrs(double *arr1, int &arr1_size, double *arr2, int &arr2_size);
+
+		#pragma acc routine
+		void divArrs(double *arr1, int &arr1_size, double *arr2, int &arr2_size);
+
+		#pragma acc routine
+		void arrAddConst(double *arr, int arr_size, double c);
+
+		void update_device();
+		void update_host();
+
+	/*Takes in a vector of Cell pointers and outputs a pointer to an array of 'Cell_GPU_UpdateAll_Secretion_Advance' objects*/
+	static Cell_GPU_UpdateAll_Secretion_Advance** create_GPU_Cells_Arr(std::vector<Cell*> *all_cells_);
+	
 };
 
 class Cell : public Basic_Agent 
@@ -154,14 +223,30 @@ class Cell : public Basic_Agent
 	int updated_current_mechanics_voxel_index; // keeps the updated voxel index for later adjusting of current voxel index
 		
  public:
-	std::string type_name; 
- 
-	Custom_Cell_Data custom_data;
-	Cell_Parameters parameters;
-	Cell_Functions functions; 
 
-	Cell_State state; 
+	std::string type_name; 
+	bool is_out_of_domain;
+	bool is_movable;
+
+	Cell_State state;  //contains 1 pointer member
+	Custom_Cell_Data custom_data; //no pointer members
+	Cell_Parameters parameters; //1 pointer member
+	Cell_Functions functions;  
 	Phenotype phenotype; 
+
+
+	//Methods:
+	Cell();
+	~Cell();
+
+	/*GPU Methods-------*/
+	void testCell();
+	void update_device();
+	void update_host();
+
+
+
+	/*------------------*/
 	
 	void update_motility_vector( double dt_ );
 	void advance_bundled_phenotype_functions( double dt_ ); 
@@ -170,9 +255,6 @@ class Cell : public Basic_Agent
 	void set_previous_velocity(double xV, double yV, double zV);
 	int get_current_mechanics_voxel_index();
 	void turn_off_reactions(double); 		  // Turn off all the reactions of the cell
-	
-	bool is_out_of_domain;
-	bool is_movable;
 	
 	void flag_for_division( void ); // done 
 	void flag_for_removal( void ); // done 
@@ -183,8 +265,6 @@ class Cell : public Basic_Agent
 	Cell* divide( void );
 	void die( void );
 	void step(double dt);
-	Cell();
-	
 	bool assign_position(std::vector<double> new_position);
 	bool assign_position(double, double, double);
 	void set_total_volume(double);
@@ -194,6 +274,9 @@ class Cell : public Basic_Agent
 	void set_target_volume(double); 
 	void set_target_radius(double); 
 	void set_radius(double); 
+
+
+	
 	
 	
 	

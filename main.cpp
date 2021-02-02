@@ -85,6 +85,9 @@ using namespace PhysiCell;
 
 int main( int argc, char* argv[] )
 {
+	printf("Entered main\n");
+
+
 	// load and parse settings file(s)
 	
 	bool XML_status = false; 
@@ -173,12 +176,47 @@ int main( int argc, char* argv[] )
 
 	printf("MAXTIME:%.2f, ACTUAL MAXTIME:%.2f\n",PhysiCell_settings.max_time,PhysiCell_settings.max_time + 0.1*diffusion_dt);
 
+
+	// std::vector<Cell> test_all_cells;
+	// printf("Created test_all_cells\n");
+	// test_all_cells.push_back(Cell());
+	// //printf("Added cell 1\n");
+	// test_all_cells.push_back(Cell());
+	// //printf("Added cell 2\n");
+	// test_all_cells.push_back(Cell());
+	// //printf("Added cell 3\n");
+	// test_all_cells.push_back(Cell());
+	//printf("Added cell 4\n");
+
+	//std::cout << test_all_cells[0].cell_source_sink_solver_temp_export1.size()<<std::endl;
+
+	//printf("Size of test_all_cells before loop:%d\n",test_all_cells.size());
+
+	//printf("Finished creating cells:\n");
+
+
+	// Cell_GPU_UpdateAll_Secretion_Advance *arr_cells = new Cell_GPU_UpdateAll_Secretion_Advance[test_all_cells.size()];
+	// for(int i=0;i<test_all_cells.size();i++){
+	// 	//arr_cells[i] = new Cell_GPU_UpdateAll_Secretion_Advance(&(test_all_cells[i]),(*(test_all_cells[i].phenotype.secretion.pMicroenvironment))(test_all_cells[i].current_voxel_index));
+	// 	arr_cells[i] = Cell_GPU_UpdateAll_Secretion_Advance(&(test_all_cells[i]),NULL);
+	// }
+
+	// exit(0);
+
+	//printf("Finished test cells!\n");
+
+	// for(int i=test_all_cells.size()-1;i>=0;i--){
+	// 	//arr_cells[i] = new Cell_GPU_UpdateAll_Secretion_Advance(&(test_all_cells[i]),(*(test_all_cells[i].phenotype.secretion.pMicroenvironment))(test_all_cells[i].current_voxel_index));
+	// 	delete arr_cells[i];
+	// }
+
+	//delete arr_cells;
+
 	// main loop 
 	try 
 	{	
 		while( PhysiCell_globals.current_time < PhysiCell_settings.max_time + 0.1*diffusion_dt )
 		{
-
 
 			if (outs == 1){
 				microenvironment.translate_array_to_vector();
@@ -214,7 +252,7 @@ int main( int argc, char* argv[] )
 					microenvironment.translate_array_to_vector();
 					std::cout << "-------continuing-------" << std::endl;
 				}
-				/*Only trasnfer after the first time iteration*/
+				/*Set flag to ensure tranfer after the first time iteration*/
 				else{
 					first = false;
 				}
@@ -243,7 +281,7 @@ int main( int argc, char* argv[] )
 				printf("SAVING SVG AT CURRENT TIME:%.2f, NEXT SVG SAVE TIME:%.2f\n",PhysiCell_globals.current_time,PhysiCell_globals.next_SVG_save_time);
 				std::cout << "2" << std::endl;
 
-				
+
 				if( PhysiCell_settings.enable_SVG_saves == true )
 				{	
 					sprintf( filename , "%s/snapshot%08u.svg" , PhysiCell_settings.folder.c_str() , PhysiCell_globals.SVG_output_index ); 
@@ -260,10 +298,11 @@ int main( int argc, char* argv[] )
 			// if( default_microenvironment_options.calculate_gradients )
 			// { microenvironment.compute_all_gradient_vectors(); }
 			
-			// run PhysiCell 
-			((Cell_Container *)microenvironment.agent_container)->update_all_cells( PhysiCell_globals.current_time );
+			// run PhysiCell (Non-GPU)
+			//((Cell_Container *)microenvironment.agent_container)->update_all_cells( PhysiCell_globals.current_time );
 			
-			
+
+
 			// manually call the code for cell sources and sinks, 
 			// since these are ordinarily automatically done as part of phenotype.secretion in the 
 			// PhysiCell update that we commented out above. Remove this when we go 
@@ -274,6 +313,16 @@ int main( int argc, char* argv[] )
 			// {
 			// 	(*all_cells)[i]->phenotype.secretion.advance( (*all_cells)[i], (*all_cells)[i]->phenotype , diffusion_dt );
 			// }			
+
+			/*Start of GPU*/
+
+			//Allocates the all_cells_GPU array
+			all_cells_GPU = Cell_GPU_UpdateAll_Secretion_Advance::create_GPU_Cells_Arr(all_cells);
+
+			exit(0);
+
+			// run PhysiCell (GPU)
+			//((Cell_Container *)microenvironment.agent_container)->update_all_cells_GPU(PhysiCell_globals.current_time);
 			
 			PhysiCell_globals.current_time += diffusion_dt;
 			outs++;

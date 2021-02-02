@@ -210,6 +210,7 @@ Cell_State::Cell_State()
 	return; 
 }
 
+
 void Cell::update_motility_vector( double dt_ )
 {
 	if( phenotype.motility.is_motile == false )
@@ -319,38 +320,294 @@ void Cell::advance_bundled_phenotype_functions( double dt_ )
 	return; 
 }
 
+//GPU default Constructor for Cell
+Cell_GPU_UpdateAll_Secretion_Advance::Cell_GPU_UpdateAll_Secretion_Advance(){
+	;
+}
+
+//GPU Constructor for Cell
+Cell_GPU_UpdateAll_Secretion_Advance::Cell_GPU_UpdateAll_Secretion_Advance(Cell *cell){
+	printf("Entered Cell_GPU init\n");
+	is_active_GPU = &(cell->is_active);
+	volume_is_changed_GPU = &(cell->volume_is_changed);
+
+
+	std::cout<<"is_active_GPU:"<<*is_active_GPU<<std::endl;
+	std::cout<<"volume_is_changed_GPU:"<<*volume_is_changed_GPU<<std::endl;
+
+	total_extracellular_substrate_change_GPU = (cell->total_extracellular_substrate_change).data(); //Pointer to array of doubles (total_extracellular_substrate_change)
+	total_extracellular_substrate_change_GPU_size = (cell->total_extracellular_substrate_change).size();
+
+	for(int i=0;i<total_extracellular_substrate_change_GPU_size;i++)
+		std::cout<<total_extracellular_substrate_change_GPU[i]<<std::endl;
+
+	std::cout<<"pS_current_voxel_index_vector size:"<<total_extracellular_substrate_change_GPU_size<<std::endl;
+
+	//(*pS)(current_voxel_index) <- vector<double>
+	pS_current_voxel_index_arr_GPU = (*((*cell).phenotype.secretion.pMicroenvironment))(cell->current_voxel_index).data();
+	pS_current_voxel_index_arr_GPU_size = (*((*cell).phenotype.secretion.pMicroenvironment))(cell->current_voxel_index).size();
+
+	for(int i=0;i<pS_current_voxel_index_arr_GPU_size;i++)
+		std::cout<<pS_current_voxel_index_arr_GPU[i]<<std::endl;
+
+	std::cout<<"pS_current_voxel_index_vector size:"<<pS_current_voxel_index_arr_GPU_size<<std::endl;
+
+	internalized_substrates_GPU = (cell->internalized_substrates)->data(); //Pointer to array of doubles (internalized_substrates)
+	internalized_substrates_GPU_size = (cell->internalized_substrates)->size();
+
+	//std::cout<<(*cell).is_movable<<std::endl;
+
+	for(int i=0;i<internalized_substrates_GPU_size;i++)
+		std::cout<<internalized_substrates_GPU[i]<<std::endl;
+
+	std::cout<<"internalized_substrates_GPU_size:"<<internalized_substrates_GPU_size<<std::endl;
+
+	cell_source_sink_solver_temp1_GPU = (cell->cell_source_sink_solver_temp1).data();
+	cell_source_sink_solver_temp1_GPU_size = (cell->cell_source_sink_solver_temp1).size();
+
+	for(int i=0;i<cell_source_sink_solver_temp1_GPU_size;i++)
+		std::cout<<cell_source_sink_solver_temp1_GPU[i]<<std::endl;
+
+	std::cout<<"cell_source_sink_solver_temp1_GPU_size:"<<cell_source_sink_solver_temp1_GPU_size<<std::endl;
+
+	cell_source_sink_solver_temp2_GPU = (cell->cell_source_sink_solver_temp2).data();
+	cell_source_sink_solver_temp2_GPU_size = (cell->cell_source_sink_solver_temp2).size();
+
+	for(int i=0;i<cell_source_sink_solver_temp2_GPU_size;i++)
+		std::cout<<cell_source_sink_solver_temp2_GPU[i]<<std::endl;
+
+	std::cout<<"cell_source_sink_solver_temp2_GPU:"<<cell_source_sink_solver_temp2_GPU_size<<std::endl;
+
+	cell_source_sink_solver_temp_export1_GPU = (cell->cell_source_sink_solver_temp_export1).data(); 
+	cell_source_sink_solver_temp_export1_GPU_size = (cell->cell_source_sink_solver_temp_export1).size();
+
+	for(int i=0;i<cell_source_sink_solver_temp_export1_GPU_size;i++)
+		std::cout<<cell_source_sink_solver_temp_export1_GPU[i]<<std::endl;
+
+	std::cout<<"cell_source_sink_solver_temp_export1_GPU_size:"<<cell_source_sink_solver_temp_export1_GPU_size<<std::endl;
+
+	cell_source_sink_solver_temp_export2_GPU = (cell->cell_source_sink_solver_temp_export2).data(); 	
+	cell_source_sink_solver_temp_export2_GPU_size = (cell->cell_source_sink_solver_temp_export2).size();
+
+	for(int i=0;i<cell_source_sink_solver_temp_export2_GPU_size;i++)
+		std::cout<<cell_source_sink_solver_temp_export2_GPU[i]<<std::endl;
+
+	std::cout<<"cell_source_sink_solver_temp_export2_GPU_size:"<<cell_source_sink_solver_temp_export2_GPU_size<<std::endl;
+
+	printf("Finished creating GPU cell!\n");
+	
+
+	//Copy over the 'this' pointer for Cell_GPU_UpdateAll_Secretion_Advance object to be on device (in order to use 'this' on device)
+	//#pragma acc enter data copyin(this[0:1])
+	//#pragma acc enter data copy()
+}
+
+Cell_GPU_UpdateAll_Secretion_Advance** Cell_GPU_UpdateAll_Secretion_Advance::create_GPU_Cells_Arr(std::vector<Cell*> *all_cells_){
+	std::cout<<(*all_cells_).size()<<std::endl;
+	int all_cells_size = (*all_cells_).size();
+	Cell_GPU_UpdateAll_Secretion_Advance** all_cells_gpu = new Cell_GPU_UpdateAll_Secretion_Advance*[all_cells_size]; //might increase size of this array?
+
+
+
+	//#pragma acc enter data create((*all_cells_gpu)[0:all_cells_size])
+
+	for(int i=0;i<all_cells_size;i++){
+		all_cells_gpu[i] = new Cell_GPU_UpdateAll_Secretion_Advance((*all_cells_)[i]);
+		all_cells_gpu[i]->copy_Cell_GPU_to_device(); //Copying over this current GPU Cell to device
+	}
+
+	//#pragma acc data update device((*all_cells_gpu)[0:all_cells_size])
+
+	Cell_GPU_UpdateAll_Secretion_Advance* actual_all_cells_gpu = *all_cells_gpu;
+	#pragma acc data copyin(actual_all_cells_gpu[0:all_cells_size])
+
+	printf("Finished copying in all_cells_gpu array\n");
+
+
+	#pragma acc parallel loop present(actual_all_cells_gpu)
+	for(int j=0; j<all_cells_size; j++) {
+		actual_all_cells_gpu[j].internalized_substrates_GPU_size = 431;
+		// for(int i=0;i<actual_all_cells_gpu[j].internalized_substrates_GPU_size;i++){
+		// 	actual_all_cells_gpu[j]->internalized_substrates_GPU[i] = 433.4;
+		// }
+		
+	}
+	
+
+	#pragma acc update host(actual_all_cells_gpu[0:all_cells_size])
+
+	printf("Copied back data from device!\n");
+	
+	for(int j=0;j<all_cells_size;j++){
+		// for(int i=0;i<actual_all_cells_gpu[j].internalized_substrates_GPU_size;i++){
+		// 	printf("Checking total_extracellular_substrate_change_GPU:%.2f\n",(actual_all_cells_gpu[j]->internalized_substrates_GPU)[i]);
+		// }
+
+		printf("Checking new internalized substrates size:%d\n",actual_all_cells_gpu[j].internalized_substrates_GPU_size);
+		
+	}
+	
+
+	return all_cells_gpu;
+}
+
+void  Cell_GPU_UpdateAll_Secretion_Advance::copy_Cell_GPU_to_device(){
+	printf("Copying over cell to device...\n");
+
+	//Copying over the inputted 'Cell_GPU_UpdateAll_Secretion_Advance' to the device
+	#pragma acc enter data copyin(this[0:1]) 
+
+	//Copying over the data from inputted 'cell' object
+	#pragma acc enter data copyin(this->is_active_GPU[0:1])
+	#pragma acc enter data copyin(this->volume_is_changed_GPU[0:1])
+
+	#pragma acc enter data copyin(this->total_extracellular_substrate_change_GPU[0:this->total_extracellular_substrate_change_GPU_size])
+	#pragma acc enter data copyin(this->total_extracellular_substrate_change_GPU_size)
+
+	#pragma acc enter data copyin(this->pS_current_voxel_index_arr_GPU[0:this->pS_current_voxel_index_arr_GPU_size])
+	#pragma acc enter data copyin(this->pS_current_voxel_index_arr_GPU_size)
+
+	#pragma acc enter data copyin(this->internalized_substrates_GPU[0:this->internalized_substrates_GPU_size])
+	#pragma acc enter data copyin(this->internalized_substrates_GPU_size)
+
+	#pragma acc enter data copyin(this->cell_source_sink_solver_temp1_GPU[0:this->cell_source_sink_solver_temp1_GPU_size])
+	#pragma acc enter data copyin(this->cell_source_sink_solver_temp1_GPU_size)
+
+	#pragma acc enter data copyin(this->cell_source_sink_solver_temp2_GPU[0:this->cell_source_sink_solver_temp2_GPU_size])
+	#pragma acc enter data copyin(this->cell_source_sink_solver_temp2_GPU_size)
+
+	#pragma acc enter data copyin(this->cell_source_sink_solver_temp_export1_GPU[0:this->cell_source_sink_solver_temp_export1_GPU_size])
+	#pragma acc enter data copyin(this->cell_source_sink_solver_temp_export1_GPU_size)
+
+	#pragma acc enter data copyin(this->cell_source_sink_solver_temp_export2_GPU[0:this->cell_source_sink_solver_temp_export2_GPU_size])
+	#pragma acc enter data copyin(this->cell_source_sink_solver_temp_export2_GPU_size)
+
+	printf("Finished copying cell over to device!\n");
+}
+
+//#pragma acc routine
+//void Cell_GPU_UpdateAll_Secretion_Advance::simulate_secretion_and_uptake_GPU(Microenvironment* pS, double dt){
+	
+	/*if(this->is_active_GPU){
+		return;
+	}
+	else{
+		if(this->volume_is_changed_GPU){
+			//'Calling' void Basic_Agent::set_internal_uptake_constants( double dt ) below
+			
+			double internal_constant_to_discretize_the_delta_approximation = dt * volume / ( (microenvironment->voxels(current_voxel_index)).volume ) ; // needs a fix 
+			cell_source_sink_solver_temp1.assign( (*secretion_rates).size() , 0.0 ); 
+			cell_source_sink_solver_temp1 += *secretion_rates; 
+			cell_source_sink_solver_temp1 *= *saturation_densities; 
+			cell_source_sink_solver_temp1 *= internal_constant_to_discretize_the_delta_approximation; 
+			cell_source_sink_solver_temp2.assign( (*secretion_rates).size() , 1.0 ); 
+			axpy( &(cell_source_sink_solver_temp2) , internal_constant_to_discretize_the_delta_approximation , *secretion_rates );
+			axpy( &(cell_source_sink_solver_temp2) , internal_constant_to_discretize_the_delta_approximation , *uptake_rates );	
+			// temp for net export 
+			cell_source_sink_solver_temp_export1 = *net_export_rates; 
+			cell_source_sink_solver_temp_export1 *= dt; // amount exported in dt of time 
+			cell_source_sink_solver_temp_export2 = cell_source_sink_solver_temp_export1;
+			cell_source_sink_solver_temp_export2 /= ( (microenvironment->voxels(current_voxel_index)).volume ) ;
+
+
+
+
+
+			// change in surrounding density 
+			//this->volume_is_changed_GPU = false; 
+			//Finished calling void Basic_Agent::set_internal_uptake_constants( double dt )
+		}
+	}*/
+//}
+
+#pragma acc routine
+void Cell_GPU_UpdateAll_Secretion_Advance::simulate_secretion_and_uptake_GPU(Microenvironment* pS, double dt){
+	;
+}
+
+#pragma acc routine
+void Cell_GPU_UpdateAll_Secretion_Advance::addArrs(double *arr1, int &arr1_size, double *arr2, int &arr2_size){
+	;
+}
+
+#pragma acc routine
+void Cell_GPU_UpdateAll_Secretion_Advance::multiArrs(double *arr1, int &arr1_size, double *arr2, int &arr2_size){
+	;
+}
+
+#pragma acc routine
+void Cell_GPU_UpdateAll_Secretion_Advance::subArrs(double *arr1, int &arr1_size, double *arr2, int &arr2_size){
+	;
+}
+
+#pragma acc routine
+void Cell_GPU_UpdateAll_Secretion_Advance::divArrs(double *arr1, int &arr1_size, double *arr2, int &arr2_size){
+	;
+}
+
+#pragma acc routine
+void Cell_GPU_UpdateAll_Secretion_Advance::arrAddConst(double *arr, int arr_size, double c){
+	;
+}
+
+Cell_GPU_UpdateAll_Secretion_Advance::~Cell_GPU_UpdateAll_Secretion_Advance(){
+	#pragma acc exit data delete(this[0:1])
+}
+
+void Cell_GPU_UpdateAll_Secretion_Advance::update_device(){
+	#pragma acc update device(is_active_GPU[0:1])
+}
+
+void Cell_GPU_UpdateAll_Secretion_Advance::update_host(){
+	#pragma acc update host(is_active_GPU[0:1])
+}
+
+
 Cell::Cell()
 {
 	// use the cell defaults; 
-	
 	type = cell_defaults.type; 
 	type_name = cell_defaults.name; 
-	
 	custom_data = cell_defaults.custom_data; 
 	parameters = cell_defaults.parameters; 
 	functions = cell_defaults.functions; 
-	
 	phenotype = cell_defaults.phenotype; 
-	
 	phenotype.molecular.sync_to_cell( this ); 
 	
 	// cell state should be fine by the default constructor 
 	
 	current_mechanics_voxel_index=-1;
-	
 	updated_current_mechanics_voxel_index = 0;
-	
 	is_movable = true;
 	is_out_of_domain = false;
 	displacement.resize(3,0.0); // state? 
 	
 	assign_orientation();
 	container = NULL;
-	
 	set_total_volume( phenotype.volume.total ); 
 	
 	return; 
 }
+
+Cell::~Cell(){
+
+}
+
+/*GPU Methods----------*/
+// void update_device(){
+// 	#pragma acc update device(current_mechanics_voxel_index)
+// 	#pragma acc update device(updated_current_mechanics_voxel_index)
+// 	#pragma acc update device(is_moveable)
+// 	#pragma acc update device(is_out_of_domain)
+// }
+
+// void update_host(){
+// 	#pragma acc update host(current_mechanics_voxel_index)
+// 	#pragma acc update host(updated_current_mechanics_voxel_index)
+// 	#pragma acc update host(is_moveable)
+// 	#pragma acc update host(is_out_of_domain)
+// }
+/*--------------------*/
 
 void Cell::flag_for_division( void )
 {

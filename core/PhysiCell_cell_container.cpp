@@ -76,6 +76,9 @@ namespace PhysiCell{
 
 std::vector<Cell*> *all_cells;
 
+/*An array version of 'all_cells' for transferring to GPU*/
+Cell_GPU_UpdateAll_Secretion_Advance** all_cells_GPU;
+
 Cell_Container::Cell_Container()
 {
 	all_cells = (std::vector<Cell*> *) &all_basic_agents;	
@@ -85,6 +88,7 @@ Cell_Container::Cell_Container()
 	
 	return; 
 }	
+
 	
 void Cell_Container::initialize(double x_start, double x_end, double y_start, double y_end, double z_start, double z_end , double voxel_size)
 {
@@ -114,6 +118,12 @@ void Cell_Container::update_all_cells(double t)
 	
 	update_all_cells(t, phenotype_dt, mechanics_dt , diffusion_dt );
 	
+	return; 
+}
+
+void Cell_Container::update_all_cells_GPU(double t)
+{
+	update_all_cells_GPU(t, phenotype_dt, mechanics_dt , diffusion_dt );	
 	return; 
 }
 
@@ -160,7 +170,7 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 			if((*all_cells)[i]->is_out_of_domain)
 				continue;
 			(*all_cells)[i]->update_cell_and_death_parameters((*all_cells)[i],cell_cycle_dt);
-			(*all_cells)[i]->advance_cell_current_phase((*all_cells)[i],time_since_last_cycle);
+			(*all_cells)[i]->advance_fcell_current_phase((*all_cells)[i],time_since_last_cycle);
 			(*all_cells)[i]->update_volume((*all_cells)[i], time_since_last_cycle ); 
 		}
 		*/
@@ -241,9 +251,125 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 	return;
 }
 
+void Cell_Container::update_all_cells_GPU(double t, double phenotype_dt_ , double mechanics_dt_ , double diffusion_dt_)
+{
+	// secretions and uptakes. Syncing with BioFVM is automated. 
+
+	// #pragma omp parallel for 
+	// for( int i=0; i < all_cells_size; i++ )
+	// {
+	// 	//Loop through each of the cells
+	// 	all_cells_ptr[i]->phenotype.secretion.advance( all_cells_ptr[i], all_cells_ptr[i]->phenotype , diffusion_dt_ );
+	// }
+
+
+
+
+	exit(0);
+	
+	//if it is the time for running cell cycle, do it!
+	double time_since_last_cycle= t- last_cell_cycle_time;
+
+	static double phenotype_dt_tolerance = 0.001 * phenotype_dt_; 
+	static double mechanics_dt_tolerance = 0.001 * mechanics_dt_; 
+	
+	if( fabs(time_since_last_cycle-phenotype_dt_ ) < phenotype_dt_tolerance || !initialzed)
+	{
+		// Reset the max_radius in each voxel. It will be filled in set_total_volume
+		// It might be better if we calculate it before mechanics each time 
+		std::fill(max_cell_interactive_distance_in_voxel.begin(), max_cell_interactive_distance_in_voxel.end(), 0.0);
+		
+		if(!initialzed)
+		{
+			time_since_last_cycle = phenotype_dt_;
+		}
+		
+		// new as of 1.2.1 -- bundles cell phenotype parameter update, volume update, geometry update, 
+		// checking for death, and advancing the cell cycle. Not motility, though. (that's in mechanics)
+		#pragma omp parallel for 
+		for( int i=0; i < (*all_cells).size(); i++ )
+		{
+			if( (*all_cells)[i]->is_out_of_domain == false )
+			{
+				(*all_cells)[i]->advance_bundled_phenotype_functions( time_since_last_cycle ); 
+			}
+		}
+		
+		// process divides / removes 
+		for( int i=0; i < cells_ready_to_divide.size(); i++ )
+		{
+			cells_ready_to_divide[i]->divide();
+		}
+		for( int i=0; i < cells_ready_to_die.size(); i++ )
+		{	
+			cells_ready_to_die[i]->die();	
+		}
+		num_divisions_in_current_step+=  cells_ready_to_divide.size();
+		num_deaths_in_current_step+=  cells_ready_to_die.size();
+		
+		cells_ready_to_die.clear();
+		cells_ready_to_divide.clear();
+		last_cell_cycle_time= t;
+	}
+		
+	double time_since_last_mechanics= t- last_mechanics_time;
+	
+	// if( time_since_last_mechanics>= mechanics_dt || !initialzed)
+	if( fabs(time_since_last_mechanics - mechanics_dt_) < mechanics_dt_tolerance || !initialzed)
+	{
+		if(!initialzed)
+		{
+			time_since_last_mechanics = mechanics_dt_;
+		}
+		
+		// new February 2018 
+		// if we need gradients, compute them
+		if( default_microenvironment_options.calculate_gradients ) 
+		{ microenvironment.compute_all_gradient_vectors();  }
+		// end of new in Feb 2018 		
+		
+		// Compute velocities
+		#pragma omp parallel for 
+		for( int i=0; i < (*all_cells).size(); i++ )
+		{
+
+			if(!(*all_cells)[i]->is_out_of_domain && (*all_cells)[i]->is_movable && (*all_cells)[i]->functions.update_velocity )
+			{
+				// update_velocity already includes the motility update 
+				//(*all_cells)[i]->phenotype.motility.update_motility_vector( (*all_cells)[i] ,(*all_cells)[i]->phenotype , time_since_last_mechanics ); 
+				(*all_cells)[i]->functions.update_velocity( (*all_cells)[i], (*all_cells)[i]->phenotype, time_since_last_mechanics);
+			}
+
+			if( (*all_cells)[i]->functions.custom_cell_rule )
+			{
+				(*all_cells)[i]->functions.custom_cell_rule((*all_cells)[i], (*all_cells)[i]->phenotype, time_since_last_mechanics);
+			}
+		}
+		// Calculate new positions
+		#pragma omp parallel for 
+		for( int i=0; i < (*all_cells).size(); i++ )
+		{
+			if(!(*all_cells)[i]->is_out_of_domain && (*all_cells)[i]->is_movable)
+			{
+				(*all_cells)[i]->update_position(time_since_last_mechanics);
+			}
+		}
+		
+		// When somebody reviews this code, let's add proper braces for clarity!!! 
+		
+		// Update cell indices in the container
+		for( int i=0; i < (*all_cells).size(); i++ )
+			if(!(*all_cells)[i]->is_out_of_domain && (*all_cells)[i]->is_movable)
+				(*all_cells)[i]->update_voxel_in_container();
+		last_mechanics_time=t;
+	}
+	
+	initialzed=true;
+	return;
+}
+
 void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double mechanics_dt_ , double diffusion_dt_ )
 {
-	printf("ENTERED HERE!!!!!! UPDATE_ALL_CELLS: t:%.2f, phento_dt:%.2f, mechanics_dt:%.2f, diffusion_dt:%.2f\n",t,phenotype_dt_,mechanics_dt_,diffusion_dt_);
 	// secretions and uptakes. Syncing with BioFVM is automated. 
 
 	#pragma omp parallel for 

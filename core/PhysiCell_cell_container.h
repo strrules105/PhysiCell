@@ -77,6 +77,7 @@
 namespace PhysiCell{
 
 class Cell; 
+class Cell_GPU_UpdateAll_Secretion_Advance;
 
 class Cell_Container : public BioFVM::Agent_Container
 {
@@ -115,12 +116,22 @@ class Cell_Container : public BioFVM::Agent_Container
 	void flag_cell_for_division( Cell* pCell ); 
 	void flag_cell_for_removal( Cell* pCell ); 
 	bool contain_any_cell(int voxel_index);
+
+
+	/*GPU functions*/
+	void update_all_cells_GPU(double t);
+	void update_all_cells_GPU(double t, double phenotype_dt, double mechanics_dt, double diffusion_dt ); 
 };
 
 int find_escaping_face_index(Cell* agent);
 extern std::vector<Cell*> *all_cells; 
+extern Cell_GPU_UpdateAll_Secretion_Advance** all_cells_GPU;
+
 
 Cell_Container* create_cell_container_for_microenvironment( BioFVM::Microenvironment& m , double mechanics_voxel_size );
+
+
+
 
 
 

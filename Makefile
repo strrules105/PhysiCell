@@ -36,7 +36,7 @@ ARCH := native # best auto-tuning
 CFLAGS := -march=$(ARCH) -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11
 # ACCFLAGS := used for GPU and PGI
 # ACCFLAGS := -std=c++11 -Minline -Minfo=accel -acc -ta=tesla,cc70
-ACCFLAGS := -std=c++11 -Minline -Minfo=accel -acc -ta=tesla:managed
+ACCFLAGS := -std=c++11 -Minline -Minfo=accel -acc -ta=tesla:managed -DNDEBUG
 #ACCFLAGS := -std=c++11 -Minline -Minfo=accel -acc -ta=host
 #ACCFLAGS := -std=c++11 -Minline -Minfo=accel -acc -ta=multicore
 #NVACCFLAGS := -std=c++11 -Minline -Minfo=accel -acc -gpu=managed

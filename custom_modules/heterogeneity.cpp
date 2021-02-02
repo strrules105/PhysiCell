@@ -252,6 +252,7 @@ void setup_tissue( void )
 		y += cell_spacing * sqrt(3.0)/2.0; 
 		n++; 
 	}
+
 	
 	double sum = 0.0; 
 	double min = 9e9; 
