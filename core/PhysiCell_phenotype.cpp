@@ -829,32 +829,27 @@ void Secretion::sync_to_microenvironment( Microenvironment* pNew_Microenvironmen
 	return; 
 }
 
-#pragma acc routine seq
+
+//We don't need phenotype because it's the pCell's phenotype
 void Secretion::advance( Basic_Agent* pCell, Phenotype& phenotype , double dt )
 {
-	printf("Inside secretion advance\n");
-	printf("Secretion rates size:%d\n",pCell->secretion_rates->size());
-	//std::cout << "Secretion rate:" << pCell->secretion_rates << std::endl;
 	// if this phenotype is not associated with a cell, exit 
-	
-	
-	if(pCell == NULL )
+	if( pCell == NULL )
 	{ return; }
 
 	// if there is no microenvironment, attempt to sync. 
-	if( pMicroenvironment == NULL ){
+	if( pMicroenvironment == NULL )
+	{
 		// first, try the cell's microenvironment
-		// if( pCell->get_microenvironment() )
-		// {
-		// 	sync_to_microenvironment( pCell->get_microenvironment() ); 
-		// }
-		// // otherwise, try the default microenvironment
-		// else
-		// {
-		// 	sync_to_microenvironment( get_default_microenvironment() ); 
-		// }
-
-		printf("First pMicroenv check\n");
+		if( pCell->get_microenvironment() )
+		{
+			sync_to_microenvironment( pCell->get_microenvironment() ); 
+		}
+		// otherwise, try the default microenvironment
+		else
+		{
+			sync_to_microenvironment( get_default_microenvironment() ); 
+		}
 
 		// if we've still failed, return. 
 		if( pMicroenvironment == NULL ) 
@@ -863,28 +858,26 @@ void Secretion::advance( Basic_Agent* pCell, Phenotype& phenotype , double dt )
 		}
 	}
 
-	printf("Checked if pMicroenv was NULL\n");
-
-	// // make sure the associated cell has the correct rate vectors 
-	// if( pCell->secretion_rates != &secretion_rates )
-	// {
-	// 	delete pCell->secretion_rates; 
-	// 	delete pCell->uptake_rates; 
-	// 	delete pCell->saturation_densities; 
-	// 	delete pCell->net_export_rates; 
+	// make sure the associated cell has the correct rate vectors 
+	if( pCell->secretion_rates != &secretion_rates )
+	{
+		delete pCell->secretion_rates; 
+		delete pCell->uptake_rates; 
+		delete pCell->saturation_densities; 
+		delete pCell->net_export_rates; 
 		
-	// 	pCell->secretion_rates = &secretion_rates; 
-	// 	pCell->uptake_rates = &uptake_rates; 
-	// 	pCell->saturation_densities = &saturation_densities; 
-	// 	pCell->net_export_rates = &net_export_rates; 
+		pCell->secretion_rates = &secretion_rates; 
+		pCell->uptake_rates = &uptake_rates; 
+		pCell->saturation_densities = &saturation_densities; 
+		pCell->net_export_rates = &net_export_rates; 
 		
-	// 	pCell->set_total_volume( phenotype.volume.total ); 
-	// 	pCell->set_internal_uptake_constants( dt );
-	// }
+		pCell->set_total_volume( phenotype.volume.total ); 
+		pCell->set_internal_uptake_constants( dt );
+	}
 
-	// // now, call the BioFVM secretion/uptake function 
+	// now, call the BioFVM secretion/uptake function 
 	
-	// pCell->simulate_secretion_and_uptake( pMicroenvironment , dt ); 
+	pCell->simulate_secretion_and_uptake( pMicroenvironment , dt ); 
 	
 	return; 
 }

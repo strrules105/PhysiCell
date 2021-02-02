@@ -407,7 +407,6 @@ Cell_GPU_UpdateAll_Secretion_Advance* Cell_GPU_UpdateAll_Secretion_Advance::crea
 	int all_cells_size = (*all_cells_).size();
 	Cell_GPU_UpdateAll_Secretion_Advance* all_cells_gpu = new Cell_GPU_UpdateAll_Secretion_Advance[all_cells_size]; //might increase size of this array?
 
-	//#pragma acc enter data create(actual_all_cells_gpu[0:all_cells_size])
 
 	for(int i=0;i<all_cells_size;i++){
 		all_cells_gpu[i] = Cell_GPU_UpdateAll_Secretion_Advance((*all_cells_)[i]);
@@ -418,10 +417,14 @@ Cell_GPU_UpdateAll_Secretion_Advance* Cell_GPU_UpdateAll_Secretion_Advance::crea
 
 	printf("Finished copying in all_cells_gpu array\n");
 
+	//Copies in the 'all_cells_gpu' host array to gpu device
+	#pragma acc enter data copyin(all_cells_gpu[0:all_cells_size])
 
-	#pragma acc parallel loop
+
+	#pragma acc parallel loop present(all_cells_gpu)
 	for(int j=0; j<all_cells_size; j++) {
-		all_cells_gpu[j].internalized_substrates_GPU_size = 431;
+		//all_cells_gpu[j].internalized_substrates_GPU_size = 431;
+		
 		for(int i=0;i<all_cells_gpu[j].internalized_substrates_GPU_size;i++){
 			all_cells_gpu[j].internalized_substrates_GPU[i] = 8.4;
 		}
@@ -432,15 +435,42 @@ Cell_GPU_UpdateAll_Secretion_Advance* Cell_GPU_UpdateAll_Secretion_Advance::crea
 
 	printf("Copied back data from device!\n");
 	
-	for(int j=0;j<all_cells_size;j++){
-		for(int i=0;i<all_cells_gpu[j].internalized_substrates_GPU_size;i++){
-			printf("Checking total_extracellular_substrate_change_GPU:%.2f\n",all_cells_gpu[j].internalized_substrates_GPU[i]);
+	for(int j=0;j<300;j++){
+		//  for(int i=0;i<all_cells_gpu[j].internalized_substrates_GPU_size;i++){
+		//  	printf("Checking total_extracellular_substrate_change_GPU:%.2f\n",all_cells_gpu[j].internalized_substrates_GPU[i]);
+		// 	printf("Checking total_extracellular_substrate_change actual all_cells:%.2f\n",(*all_cells_)[j].internalized_substrates_GPU[i])
+		//  }
+
+		if((*all_cells_)[j]==NULL){
+			continue;
 		}
 
-		printf("Checking new internalized substrates size:%d\n",all_cells_gpu[j].internalized_substrates_GPU_size);
+		printf("Comparing..\n");
+
+		 for(int i=0;i<all_cells_gpu[j].internalized_substrates_GPU_size;i++){
+		 	printf("Checking total_extracellular_substrate_change_GPU:%.2f\n",all_cells_gpu[j].internalized_substrates_GPU[i]);
+		 }
+
+		 int host_size_IS = ((*all_cells_)[j]->internalized_substrates)->size();
+
+		 for(int i=0;i<host_size_IS;i++){
+		 	printf("Checking total_extracellular_substrate_change actual all_cells:%.2f\n",(*all_cells_)[j]->internalized_substrates[i]);
+		 }
+
+		 printf("-------\n");
+
+
+		
+
+		// printf("Checking total_extracellular_substrate_change_GPU:%.2f\n",all_cells_gpu[j].internalized_substrates_GPU[0]);
+		// printf("Checking total_extracellular_substrate_change actual all_cells:%.2f\n",(*all_cells_)[j]->internalized_substrates[0]);
+
+		//printf("Checking new internalized substrates size:%d\n",all_cells_gpu[j].internalized_substrates_GPU_size);
+		
 		
 	}
 	
+	printf("Returning, finished creating all_cells_gpu..\n");
 
 	return all_cells_gpu;
 }

@@ -316,8 +316,10 @@ int main( int argc, char* argv[] )
 
 			/*Start of GPU*/
 
-			//Allocates the all_cells_GPU array
+			//Copies over 'all_cells' host Cell vector to gpu device
 			all_cells_GPU = Cell_GPU_UpdateAll_Secretion_Advance::create_GPU_Cells_Arr(all_cells);
+
+			
 
 			exit(0);
 
