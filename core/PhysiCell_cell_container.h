@@ -125,7 +125,7 @@ class Cell_Container : public BioFVM::Agent_Container
 
 int find_escaping_face_index(Cell* agent);
 extern std::vector<Cell*> *all_cells; 
-extern Cell_GPU_UpdateAll_Secretion_Advance** all_cells_GPU;
+extern Cell_GPU_UpdateAll_Secretion_Advance* all_cells_GPU;
 
 
 Cell_Container* create_cell_container_for_microenvironment( BioFVM::Microenvironment& m , double mechanics_voxel_size );

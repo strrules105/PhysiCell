@@ -77,7 +77,7 @@ namespace PhysiCell{
 std::vector<Cell*> *all_cells;
 
 /*An array version of 'all_cells' for transferring to GPU*/
-Cell_GPU_UpdateAll_Secretion_Advance** all_cells_GPU;
+Cell_GPU_UpdateAll_Secretion_Advance* all_cells_GPU;
 
 Cell_Container::Cell_Container()
 {

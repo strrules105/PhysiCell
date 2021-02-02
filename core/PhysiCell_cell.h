@@ -211,7 +211,7 @@ class Cell_GPU_UpdateAll_Secretion_Advance{
 		void update_host();
 
 	/*Takes in a vector of Cell pointers and outputs a pointer to an array of 'Cell_GPU_UpdateAll_Secretion_Advance' objects*/
-	static Cell_GPU_UpdateAll_Secretion_Advance** create_GPU_Cells_Arr(std::vector<Cell*> *all_cells_);
+	static Cell_GPU_UpdateAll_Secretion_Advance* create_GPU_Cells_Arr(std::vector<Cell*> *all_cells_);
 	
 };
 

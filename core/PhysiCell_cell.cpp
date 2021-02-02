@@ -402,48 +402,42 @@ Cell_GPU_UpdateAll_Secretion_Advance::Cell_GPU_UpdateAll_Secretion_Advance(Cell 
 	//#pragma acc enter data copy()
 }
 
-Cell_GPU_UpdateAll_Secretion_Advance** Cell_GPU_UpdateAll_Secretion_Advance::create_GPU_Cells_Arr(std::vector<Cell*> *all_cells_){
+Cell_GPU_UpdateAll_Secretion_Advance* Cell_GPU_UpdateAll_Secretion_Advance::create_GPU_Cells_Arr(std::vector<Cell*> *all_cells_){
 	std::cout<<(*all_cells_).size()<<std::endl;
 	int all_cells_size = (*all_cells_).size();
-	Cell_GPU_UpdateAll_Secretion_Advance** all_cells_gpu = new Cell_GPU_UpdateAll_Secretion_Advance*[all_cells_size]; //might increase size of this array?
+	Cell_GPU_UpdateAll_Secretion_Advance* all_cells_gpu = new Cell_GPU_UpdateAll_Secretion_Advance[all_cells_size]; //might increase size of this array?
 
-
-
-	//#pragma acc enter data create((*all_cells_gpu)[0:all_cells_size])
+	//#pragma acc enter data create(actual_all_cells_gpu[0:all_cells_size])
 
 	for(int i=0;i<all_cells_size;i++){
-		all_cells_gpu[i] = new Cell_GPU_UpdateAll_Secretion_Advance((*all_cells_)[i]);
-		all_cells_gpu[i]->copy_Cell_GPU_to_device(); //Copying over this current GPU Cell to device
+		all_cells_gpu[i] = Cell_GPU_UpdateAll_Secretion_Advance((*all_cells_)[i]);
+		//all_cells_gpu[i]->copy_Cell_GPU_to_device(); //Copying over this current GPU Cell to device
+
+		//#pragma acc enter data copyin(actual_all_cells_gpu[i:1])
 	}
-
-	//#pragma acc data update device((*all_cells_gpu)[0:all_cells_size])
-
-	Cell_GPU_UpdateAll_Secretion_Advance* actual_all_cells_gpu = *all_cells_gpu;
-	#pragma acc data copyin(actual_all_cells_gpu[0:all_cells_size])
 
 	printf("Finished copying in all_cells_gpu array\n");
 
 
-	#pragma acc parallel loop present(actual_all_cells_gpu)
+	#pragma acc parallel loop
 	for(int j=0; j<all_cells_size; j++) {
-		actual_all_cells_gpu[j].internalized_substrates_GPU_size = 431;
-		// for(int i=0;i<actual_all_cells_gpu[j].internalized_substrates_GPU_size;i++){
-		// 	actual_all_cells_gpu[j]->internalized_substrates_GPU[i] = 433.4;
-		// }
-		
+		all_cells_gpu[j].internalized_substrates_GPU_size = 431;
+		for(int i=0;i<all_cells_gpu[j].internalized_substrates_GPU_size;i++){
+			all_cells_gpu[j].internalized_substrates_GPU[i] = 8.4;
+		}
 	}
 	
 
-	#pragma acc update host(actual_all_cells_gpu[0:all_cells_size])
+	//#pragma acc update host(all_cells_gpu[0:all_cells_size])
 
 	printf("Copied back data from device!\n");
 	
 	for(int j=0;j<all_cells_size;j++){
-		// for(int i=0;i<actual_all_cells_gpu[j].internalized_substrates_GPU_size;i++){
-		// 	printf("Checking total_extracellular_substrate_change_GPU:%.2f\n",(actual_all_cells_gpu[j]->internalized_substrates_GPU)[i]);
-		// }
+		for(int i=0;i<all_cells_gpu[j].internalized_substrates_GPU_size;i++){
+			printf("Checking total_extracellular_substrate_change_GPU:%.2f\n",all_cells_gpu[j].internalized_substrates_GPU[i]);
+		}
 
-		printf("Checking new internalized substrates size:%d\n",actual_all_cells_gpu[j].internalized_substrates_GPU_size);
+		printf("Checking new internalized substrates size:%d\n",all_cells_gpu[j].internalized_substrates_GPU_size);
 		
 	}
 	
@@ -458,29 +452,29 @@ void  Cell_GPU_UpdateAll_Secretion_Advance::copy_Cell_GPU_to_device(){
 	#pragma acc enter data copyin(this[0:1]) 
 
 	//Copying over the data from inputted 'cell' object
-	#pragma acc enter data copyin(this->is_active_GPU[0:1])
-	#pragma acc enter data copyin(this->volume_is_changed_GPU[0:1])
+	#pragma acc enter data copyin(is_active_GPU[0:1])
+	#pragma acc enter data copyin(volume_is_changed_GPU[0:1])
 
-	#pragma acc enter data copyin(this->total_extracellular_substrate_change_GPU[0:this->total_extracellular_substrate_change_GPU_size])
-	#pragma acc enter data copyin(this->total_extracellular_substrate_change_GPU_size)
+	#pragma acc enter data copyin(total_extracellular_substrate_change_GPU[0:total_extracellular_substrate_change_GPU_size])
+	#pragma acc enter data copyin(total_extracellular_substrate_change_GPU_size)
 
-	#pragma acc enter data copyin(this->pS_current_voxel_index_arr_GPU[0:this->pS_current_voxel_index_arr_GPU_size])
-	#pragma acc enter data copyin(this->pS_current_voxel_index_arr_GPU_size)
+	#pragma acc enter data copyin(pS_current_voxel_index_arr_GPU[0:pS_current_voxel_index_arr_GPU_size])
+	#pragma acc enter data copyin(pS_current_voxel_index_arr_GPU_size)
 
-	#pragma acc enter data copyin(this->internalized_substrates_GPU[0:this->internalized_substrates_GPU_size])
-	#pragma acc enter data copyin(this->internalized_substrates_GPU_size)
+	#pragma acc enter data copyin(internalized_substrates_GPU[0:internalized_substrates_GPU_size])
+	#pragma acc enter data copyin(internalized_substrates_GPU_size)
 
-	#pragma acc enter data copyin(this->cell_source_sink_solver_temp1_GPU[0:this->cell_source_sink_solver_temp1_GPU_size])
-	#pragma acc enter data copyin(this->cell_source_sink_solver_temp1_GPU_size)
+	#pragma acc enter data copyin(cell_source_sink_solver_temp1_GPU[0:cell_source_sink_solver_temp1_GPU_size])
+	#pragma acc enter data copyin(cell_source_sink_solver_temp1_GPU_size)
 
-	#pragma acc enter data copyin(this->cell_source_sink_solver_temp2_GPU[0:this->cell_source_sink_solver_temp2_GPU_size])
-	#pragma acc enter data copyin(this->cell_source_sink_solver_temp2_GPU_size)
+	#pragma acc enter data copyin(cell_source_sink_solver_temp2_GPU[0:cell_source_sink_solver_temp2_GPU_size])
+	#pragma acc enter data copyin(cell_source_sink_solver_temp2_GPU_size)
 
-	#pragma acc enter data copyin(this->cell_source_sink_solver_temp_export1_GPU[0:this->cell_source_sink_solver_temp_export1_GPU_size])
-	#pragma acc enter data copyin(this->cell_source_sink_solver_temp_export1_GPU_size)
+	#pragma acc enter data copyin(cell_source_sink_solver_temp_export1_GPU[0:cell_source_sink_solver_temp_export1_GPU_size])
+	#pragma acc enter data copyin(cell_source_sink_solver_temp_export1_GPU_size)
 
-	#pragma acc enter data copyin(this->cell_source_sink_solver_temp_export2_GPU[0:this->cell_source_sink_solver_temp_export2_GPU_size])
-	#pragma acc enter data copyin(this->cell_source_sink_solver_temp_export2_GPU_size)
+	#pragma acc enter data copyin(cell_source_sink_solver_temp_export2_GPU[0:cell_source_sink_solver_temp_export2_GPU_size])
+	#pragma acc enter data copyin(cell_source_sink_solver_temp_export2_GPU_size)
 
 	printf("Finished copying cell over to device!\n");
 }
