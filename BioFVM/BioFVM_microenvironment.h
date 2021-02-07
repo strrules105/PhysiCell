@@ -154,7 +154,7 @@ class Microenvironment
 	double ** gpu_dirichlet_value_vectors; // gpu copy of dirichlet_value_vectors
 	bool * gpu_dirichlet_activation_vector; //gpu copy of dirichlet_activation_vector
 	bool * gpu_voxels_is_dirichlet; //mesh.voxels[iteration].is_Dirichlet value copy, mesh size
-	int * sizes_p_density_vectors;
+	int * sizes_p_density_vectors; //the amount of p_density_vectors (rows)
 	int * sizes_thomas_denomx;
 	int * sizes_thomas_denomy;
 	int * sizes_thomas_denomz;

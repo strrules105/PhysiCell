@@ -319,12 +319,9 @@ int main( int argc, char* argv[] )
 			//Copies over 'all_cells' host Cell vector to gpu device
 			all_cells_GPU = Cell_GPU_UpdateAll_Secretion_Advance::create_GPU_Cells_Arr(all_cells);
 
-			
-
-			exit(0);
 
 			// run PhysiCell (GPU)
-			//((Cell_Container *)microenvironment.agent_container)->update_all_cells_GPU(PhysiCell_globals.current_time);
+			((Cell_Container *)microenvironment.agent_container)->update_all_cells_GPU(PhysiCell_globals.current_time);
 			
 			PhysiCell_globals.current_time += diffusion_dt;
 			outs++;

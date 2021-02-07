@@ -78,6 +78,7 @@ std::vector<Cell*> *all_cells;
 
 /*An array version of 'all_cells' for transferring to GPU*/
 Cell_GPU_UpdateAll_Secretion_Advance* all_cells_GPU;
+//int all_cells_GPU_size; //keeps track of the size of 'all_cells_GPU'
 
 Cell_Container::Cell_Container()
 {
@@ -123,7 +124,7 @@ void Cell_Container::update_all_cells(double t)
 
 void Cell_Container::update_all_cells_GPU(double t)
 {
-	update_all_cells_GPU(t, phenotype_dt, mechanics_dt , diffusion_dt );	
+	update_all_cells_GPU(t, phenotype_dt, mechanics_dt , diffusion_dt);	
 	return; 
 }
 
@@ -139,7 +140,7 @@ void Cell_Container::update_all_cells(double t, double dt)
 }
 
 // deprecate me JULY 2017 
-void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double mechanics_dt_ )
+void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double mechanics_dt_)
 {
 	std::cout << "WARNING : " << __FUNCTION__ << " in " << __FILE__ << " is deprecated." 
 		<< "\tIt returns without execution." << std::endl; 
@@ -253,17 +254,33 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 
 void Cell_Container::update_all_cells_GPU(double t, double phenotype_dt_ , double mechanics_dt_ , double diffusion_dt_)
 {
+	printf("Entered update_all_cells_GPU\n");
 	// secretions and uptakes. Syncing with BioFVM is automated. 
 
-	// #pragma omp parallel for 
-	// for( int i=0; i < all_cells_size; i++ )
-	// {
-	// 	//Loop through each of the cells
-	// 	all_cells_ptr[i]->phenotype.secretion.advance( all_cells_ptr[i], all_cells_ptr[i]->phenotype , diffusion_dt_ );
-	// }
+	int all_cells_size = (*all_cells).size(); //Get the current total amount of cells
+	BioFVM::Microenvironment *default_microenv_address = BioFVM::get_default_microenvironment();
+	//unsigned long int *default_microenv_address = &(*default_microenv);
+
+	std::cout<<"Default microenv address:"<<default_microenv_address<<std::endl;
+
+	//#pragma omp parallel for 
+	#pragma acc parallel loop copyin(all_cells_GPU[0:all_cells_size])
+	for( int i=0; i < all_cells_size; i++ )
+	{
+		//printf("Size of interalized_substrates_GPU of each GPU Cell:%d\n",all_cells_GPU[i].internalized_substrates_GPU_size);
+		//printf("Checking internalized_substrates_GPU[0] of each GPU Cell:%.2f\n",all_cells_GPU[i].internalized_substrates_GPU[0]);
 
 
+		//(*all_cells)[i]->phenotype.secretion.advance( (*all_cells)[i], (*all_cells)[i]->phenotype , diffusion_dt_ );
+		
+		//Extracting and running portions from phenotype.secretion.advance below:
+		// if(all_cells_GPU[i]==NULL){
+		// 	continue;
+		// }
+		// else{
 
+		// }
+	}
 
 	exit(0);
 	

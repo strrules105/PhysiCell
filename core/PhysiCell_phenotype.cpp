@@ -819,8 +819,11 @@ void Secretion::sync_to_current_microenvironment( void )
 	
 void Secretion::sync_to_microenvironment( Microenvironment* pNew_Microenvironment )
 {
+	//Set's this 'Secretion' object's pMicroenvironment pointer address to the inputted pNew_Microenvironment object's address
 	pMicroenvironment = pNew_Microenvironment;
 	
+	//Set the size of 'secretion_rates', 'uptake_rates', 'saturation_densities', 'net_export_rates' to the pMicroenvironment->number_of_densities field
+	//number_of_densities() returns (*p_density_vectors)[0].size();
 	secretion_rates.resize( pMicroenvironment->number_of_densities() , 0.0 ); 
 	uptake_rates.resize( pMicroenvironment->number_of_densities() , 0.0 ); 
 	saturation_densities.resize( pMicroenvironment->number_of_densities() , 0.0 ); 
@@ -830,7 +833,7 @@ void Secretion::sync_to_microenvironment( Microenvironment* pNew_Microenvironmen
 }
 
 
-//We don't need phenotype because it's the pCell's phenotype
+//Miguel - We don't need phenotype in update_all_cells because it's the pCell's own phenotype (self referencing)
 void Secretion::advance( Basic_Agent* pCell, Phenotype& phenotype , double dt )
 {
 	// if this phenotype is not associated with a cell, exit 
@@ -841,13 +844,23 @@ void Secretion::advance( Basic_Agent* pCell, Phenotype& phenotype , double dt )
 	if( pMicroenvironment == NULL )
 	{
 		// first, try the cell's microenvironment
+
+		/*Matches this same Cell's 'secretion' field object
+		 to the Cell's superclass Basic_Agent's 'microenvironment'*/
 		if( pCell->get_microenvironment() )
 		{
+
+			//Set's this 'Secretion' object's pMicroenvironment pointer address to the inputted pNew_Microenvironment object's address
+			//Set the size of 'secretion_rates', 'uptake_rates', 'saturation_densities', 'net_export_rates' to the pMicroenvironment->number_of_densities field
+			//number_of_densities() returns (*p_density_vectors)[0].size();
 			sync_to_microenvironment( pCell->get_microenvironment() ); 
 		}
 		// otherwise, try the default microenvironment
 		else
 		{
+			//Set's this 'Secretion' object's pMicroenvironment pointer address to the inputted pNew_Microenvironment object's address
+			//Set the size of 'secretion_rates', 'uptake_rates', 'saturation_densities', 'net_export_rates' to the pMicroenvironment->number_of_densities field
+			//number_of_densities() returns (*p_density_vectors)[0].size();
 			sync_to_microenvironment( get_default_microenvironment() ); 
 		}
 
@@ -871,8 +884,67 @@ void Secretion::advance( Basic_Agent* pCell, Phenotype& phenotype , double dt )
 		pCell->saturation_densities = &saturation_densities; 
 		pCell->net_export_rates = &net_export_rates; 
 		
-		pCell->set_total_volume( phenotype.volume.total ); 
+
+		pCell->set_total_volume( phenotype.volume.total ); //void Cell::set_total_volume(double volume)
+		/*Equivalent of set_total_volume located in PhysiCell_cell*/
+		/*
+		this->volume = volume;
+		volume_is_changed = true;
+		
+		// If the new volume is significantly different than the 
+		// current total volume, adjust all the sub-volumes 
+		// proportionally. 
+		
+		// if( fabs( phenotype.volume.total - volume ) < 1e-16 )
+		if( fabs( phenotype.volume.total - volume ) > 1e-16 )
+		{
+			double ratio= volume/ phenotype.volume.total;
+			phenotype.volume.multiply_by_ratio(ratio);
+		}
+		
+		phenotype.geometry.update( this, phenotype, 0.0 ); 
+		// phenotype.update_radius();
+		//if( get_container()->max_cell_interactive_distance_in_voxel[get_current_mechanics_voxel_index()] < 
+		//	phenotype.geometry.radius * parameters.max_interaction_distance_factor )
+		if( get_container()->max_cell_interactive_distance_in_voxel[get_current_mechanics_voxel_index()] < 
+			phenotype.geometry.radius * phenotype.mechanics.relative_maximum_adhesion_distance )
+		{
+			// get_container()->max_cell_interactive_distance_in_voxel[get_current_mechanics_voxel_index()]= phenotype.geometry.radius*parameters.max_interaction_distance_factor;
+			get_container()->max_cell_interactive_distance_in_voxel[get_current_mechanics_voxel_index()] = phenotype.geometry.radius
+				* phenotype.mechanics.relative_maximum_adhesion_distance;
+		}
+		
+		return; 
+		*/
+
 		pCell->set_internal_uptake_constants( dt );
+		/*Equivalent of set_internal_uptake_constants located in BioFVM_basic_Agent*/
+		/*double internal_constant_to_discretize_the_delta_approximation = dt * volume / ( (microenvironment->voxels(current_voxel_index)).volume ) ; // needs a fix 
+	
+		// temp1 = dt*(V_cell/V_voxel)*S*T 
+		cell_source_sink_solver_temp1.assign( (*secretion_rates).size() , 0.0 ); 
+		cell_source_sink_solver_temp1 += *secretion_rates; 
+		cell_source_sink_solver_temp1 *= *saturation_densities; 
+		cell_source_sink_solver_temp1 *= internal_constant_to_discretize_the_delta_approximation; 
+		
+	//	total_extracellular_substrate_change.assign( (*secretion_rates).size() , 1.0 ); 
+
+		// temp2 = 1 + dt*(V_cell/V_voxel)*( S + U )
+		cell_source_sink_solver_temp2.assign( (*secretion_rates).size() , 1.0 ); 
+		axpy( &(cell_source_sink_solver_temp2) , internal_constant_to_discretize_the_delta_approximation , *secretion_rates );
+		axpy( &(cell_source_sink_solver_temp2) , internal_constant_to_discretize_the_delta_approximation , *uptake_rates );	
+		
+		// temp for net export 
+		cell_source_sink_solver_temp_export1 = *net_export_rates; 
+		cell_source_sink_solver_temp_export1 *= dt; // amount exported in dt of time 
+			
+		cell_source_sink_solver_temp_export2 = cell_source_sink_solver_temp_export1;
+		cell_source_sink_solver_temp_export2 /= ( (microenvironment->voxels(current_voxel_index)).volume ) ; 
+		// change in surrounding density 
+		
+		volume_is_changed = false; 
+		
+		return; */
 	}
 
 	// now, call the BioFVM secretion/uptake function 

@@ -149,14 +149,36 @@ class Cell_GPU_UpdateAll_Secretion_Advance{
 	private:
 
 	public:
+		//Variables used to mimic 'void Secretion::sync_to_microenvironment(Microenvironment* pNew_Microenvironment)' 
 		/*Basic_Agent -> Cell -> 'microenvironment' fields*/
-		//int microenv_number_of_densities;
+		//int cell_phenotype_secretion_pMicroenv_num_of_densities_GPU; //Cell->phenotype->secretion->pMicroenvironment->(*p_density_vectors)[0].size()
+		//BioFVM::Microenvironment * cell_microenv_address; //should point to Cell->microenvironment
+		//BioFVM::Microenvironment * cell_phenotype_secretion_pMicroenv_address; //should point to Cell->phenotype->secretion->pMicroenvironment
+		
+		//unsigned long int *default_microenv_address; //should point to BioFVM::default_microenvironment
 
-		/*Basic_Agent -> Cell -> Phenotype -> 'secretion' fields*/
-		/*double * secretion_rates;
-		double * update_rates;
-		double * saturation_densities;
-		double * net_export_rates;*/
+		//Basic_Agent -> Cell -> 'phenotype' -> 'secretion' -> rates fields
+		double * cell_phenotype_secretion_secretion_rates_GPU;
+		double * cell_phenotype_secretion_update_rates_GPU;
+		double * cell_phenotype_secretion_saturation_densities_GPU;
+		double * cell_phenotype_secretion_net_export_rates_GPU;
+
+		//Basic_Agent -> Cell -> rates fields
+		double * cell_secretion_rates_GPU;
+		double * cell_update_rates_GPU;
+		double * cell_saturation_densities_GPU;
+		double * cell_net_export_rates_GPU;
+
+
+		/*---------------*/
+
+		/*Variables used in pCell->set_total_volume( phenotype.volume.total ); */
+		double cell_phenotype_volume_total; //Cell->phenotype.volume.total
+		double *volume_GPU;
+
+
+		/*-----------------------*/
+		
 
 		/*GPU Version of void Basic_Agent::simulate_secretion_and_uptake( Microenvironment* pS, double dt )*/
 		bool *is_active_GPU;
@@ -209,6 +231,8 @@ class Cell_GPU_UpdateAll_Secretion_Advance{
 
 		void update_device();
 		void update_host();
+
+		
 
 	/*Takes in a vector of Cell pointers and outputs a pointer to an array of 'Cell_GPU_UpdateAll_Secretion_Advance' objects*/
 	static Cell_GPU_UpdateAll_Secretion_Advance* create_GPU_Cells_Arr(std::vector<Cell*> *all_cells_);

@@ -36,7 +36,7 @@ ARCH := native # best auto-tuning
 CFLAGS := -march=$(ARCH) -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11
 # ACCFLAGS := used for GPU and PGI
 # ACCFLAGS := -std=c++11 -Minline -Minfo=accel -acc -ta=tesla,cc70
-ACCFLAGS := -std=c++11 -Minline -Minfo=accel -acc -ta=tesla:managed -DNDEBUG
+#ACCFLAGS := -std=c++11 -Minline -Minfo=accel -acc -ta=tesla:managed -DNDEBUG
 #ACCFLAGS := -std=c++11 -Minline -Minfo=accel -acc -ta=host
 #ACCFLAGS := -std=c++11 -Minline -Minfo=accel -acc -ta=multicore
 #NVACCFLAGS := -std=c++11 -Minline -Minfo=accel -acc -gpu=managed
@@ -47,7 +47,7 @@ COMPILE_COMMAND := $(CC) $(CFLAGS)
 ACC_COMPILE_COMMAND := $(PGI) $(ACCFLAGS)
 
 NV_ACC_COMPILE_COMMAND := $(NV) $(NVACCFLAGS)
-NV_ACC_COMPILE_COMMAND := $(ACC_COMPILE_COMMAND)
+#NV_ACC_COMPILE_COMMAND := $(ACC_COMPILE_COMMAND)
 
 BioFVM_OBJECTS := BioFVM_vector.o BioFVM_mesh.o BioFVM_microenvironment.o BioFVM_solvers.o BioFVM_matlab.o \
 BioFVM_utilities.o BioFVM_basic_agent.o BioFVM_MultiCellDS.o BioFVM_agent_container.o 

@@ -328,6 +328,27 @@ Cell_GPU_UpdateAll_Secretion_Advance::Cell_GPU_UpdateAll_Secretion_Advance(){
 //GPU Constructor for Cell
 Cell_GPU_UpdateAll_Secretion_Advance::Cell_GPU_UpdateAll_Secretion_Advance(Cell *cell){
 	printf("Entered Cell_GPU init\n");
+	//Variables used to mimic 'void Secretion::sync_to_microenvironment(Microenvironment* pNew_Microenvironment)' 
+	/*Basic_Agent -> Cell -> 'microenvironment' fields*/
+	//cell_phenotype_secretion_pMicroenv_num_of_densities_GPU = cell; //Cell->phenotype->secretion->pMicroenvironment->(*p_density_vectors)[0].size()
+	//cell_microenv_address = cell->get_microenvironment(); //should point to Cell->microenvironment
+	//cell_phenotype_secretion_pMicroenv_address = cell->phenotype->secretion->pMicroenvironment; //should point to Cell->phenotype->secretion->pMicroenvironment
+	
+	//unsigned long int *default_microenv_address; //should point to BioFVM::default_microenvironment
+
+	//Basic_Agent -> Cell -> 'phenotype' -> 'secretion' fields
+	cell_phenotype_secretion_secretion_rates_GPU;
+	cell_phenotype_secretion_update_rates_GPU;
+	cell_phenotype_secretion_saturation_densities_GPU;
+	cell_phenotype_secretion_net_export_rates_GPU;
+
+
+
+	/*---------------*/
+	
+	
+	
+	
 	is_active_GPU = &(cell->is_active);
 	volume_is_changed_GPU = &(cell->volume_is_changed);
 
@@ -405,74 +426,114 @@ Cell_GPU_UpdateAll_Secretion_Advance::Cell_GPU_UpdateAll_Secretion_Advance(Cell 
 Cell_GPU_UpdateAll_Secretion_Advance* Cell_GPU_UpdateAll_Secretion_Advance::create_GPU_Cells_Arr(std::vector<Cell*> *all_cells_){
 	std::cout<<(*all_cells_).size()<<std::endl;
 	int all_cells_size = (*all_cells_).size();
-	Cell_GPU_UpdateAll_Secretion_Advance* all_cells_gpu = new Cell_GPU_UpdateAll_Secretion_Advance[all_cells_size]; //might increase size of this array?
+	Cell_GPU_UpdateAll_Secretion_Advance* all_cells_GPU = new Cell_GPU_UpdateAll_Secretion_Advance[all_cells_size]; //might increase size of this array?
 
-
+	//Creates and allocates each cell on all_cells_GPU array on host
 	for(int i=0;i<all_cells_size;i++){
-		all_cells_gpu[i] = Cell_GPU_UpdateAll_Secretion_Advance((*all_cells_)[i]);
-		//all_cells_gpu[i]->copy_Cell_GPU_to_device(); //Copying over this current GPU Cell to device
+		all_cells_GPU[i] = Cell_GPU_UpdateAll_Secretion_Advance((*all_cells_)[i]);
+	}
 
-		//#pragma acc enter data copyin(actual_all_cells_gpu[i:1])
+	//Create the all_cells_GPU array on device (shallow copies each GPU Cell over)
+	#pragma acc enter data copyin(all_cells_GPU[0:all_cells_size])
+
+	//Copy remaining pointer field members (we do not need to copy over direct members, only the pointers (indirect members))
+	for(int i=0;i<all_cells_size;i++){
+		//all_cells_GPU[i] = Cell_GPU_UpdateAll_Secretion_Advance((*all_cells_)[i]);
+		//all_cells_GPU[i].copy_Cell_GPU_to_device(); //Copying over this current GPU Cell to device
+		
+		//#pragma acc enter data copyin(all_cells_GPU[i:1])
+
+		//Copying over the data from inputted 'cell' object
+		/*#pragma acc enter data copyin(is_active_GPU[0:1])
+		#pragma acc enter data copyin(volume_is_changed_GPU[0:1])
+
+		#pragma acc enter data copyin(total_extracellular_substrate_change_GPU[0:total_extracellular_substrate_change_GPU_size])
+		#pragma acc enter data copyin(total_extracellular_substrate_change_GPU_size)
+
+		#pragma acc enter data copyin(pS_current_voxel_index_arr_GPU[0:pS_current_voxel_index_arr_GPU_size])
+		#pragma acc enter data copyin(pS_current_voxel_index_arr_GPU_size)*/
+
+		//#pragma acc enter data copyin(all_cells_GPU[i].internalized_substrates_GPU_size[:1])
+		//#pragma acc data update device(all_cells_GPU[i].internalized_substrates_GPU_size[:1])
+
+		std::cout<<"COPYING OVER SIZE:"<<all_cells_GPU[i].internalized_substrates_GPU_size<<std::endl;
+		//int acg_isg = all_cells_GPU[i].internalized_substrates_GPU_size;
+
+		#pragma acc enter data copyin(all_cells_GPU[i].internalized_substrates_GPU[:all_cells_GPU[i].internalized_substrates_GPU_size])
+		//#pragma acc enter data copyin(all_cells_GPU[i].internalized_substrates_GPU_size)
+
+		/*#pragma acc enter data copyin(cell_source_sink_solver_temp1_GPU[0:cell_source_sink_solver_temp1_GPU_size])
+		#pragma acc enter data copyin(cell_source_sink_solver_temp1_GPU_size)
+
+		#pragma acc enter data copyin(cell_source_sink_solver_temp2_GPU[0:cell_source_sink_solver_temp2_GPU_size])
+		#pragma acc enter data copyin(cell_source_sink_solver_temp2_GPU_size)
+
+		#pragma acc enter data copyin(cell_source_sink_solver_temp_export1_GPU[0:cell_source_sink_solver_temp_export1_GPU_size])
+		#pragma acc enter data copyin(cell_source_sink_solver_temp_export1_GPU_size)
+
+		#pragma acc enter data copyin(cell_source_sink_solver_temp_export2_GPU[0:cell_source_sink_solver_temp_export2_GPU_size])
+		#pragma acc enter data copyin(cell_source_sink_solver_temp_export2_GPU_size)*/
 	}
 
 	printf("Finished copying in all_cells_gpu array\n");
 
-	//Copies in the 'all_cells_gpu' host array to gpu device
-	#pragma acc enter data copyin(all_cells_gpu[0:all_cells_size])
 
-
-	#pragma acc parallel loop present(all_cells_gpu)
+	int test_c = 0;
+	#pragma acc parallel loop copyin(all_cells_size) present(all_cells_GPU[:all_cells_size]) copy(test_c)
 	for(int j=0; j<all_cells_size; j++) {
-		//all_cells_gpu[j].internalized_substrates_GPU_size = 431;
+		//all_cells_GPU[j].internalized_substrates_GPU_size = 2;
+
+		// #pragma acc data copyin(all_cells_size, all_cells_GPU[:all_cells_size])
+		// {
+
+		//int acg_isgs = all_cells_GPU[j].internalized_substrates_GPU_size;
+
+		//for(int i=0;i<2;i++){
+		//#pragma acc parallel loop present(all_cells_GPU[j:1])
 		
-		for(int i=0;i<all_cells_gpu[j].internalized_substrates_GPU_size;i++){
-			all_cells_gpu[j].internalized_substrates_GPU[i] = 8.4;
+		for(int i=0;i<all_cells_GPU[j].internalized_substrates_GPU_size;i++){
+			all_cells_GPU[j].internalized_substrates_GPU[i] = 8.4;
 		}
+
+		test_c+=all_cells_GPU[j].internalized_substrates_GPU_size;
 	}
 	
 
-	//#pragma acc update host(all_cells_gpu[0:all_cells_size])
-
 	printf("Copied back data from device!\n");
+
+	std::cout << "TEST_C:"<<test_c<<std::endl;
+
+	/*Do NOT acc update the all_cells_GPU (will cause segfault)*/
+	//#pragma acc update self(all_cells_GPU[:all_cells_size])
 	
-	for(int j=0;j<300;j++){
-		//  for(int i=0;i<all_cells_gpu[j].internalized_substrates_GPU_size;i++){
-		//  	printf("Checking total_extracellular_substrate_change_GPU:%.2f\n",all_cells_gpu[j].internalized_substrates_GPU[i]);
-		// 	printf("Checking total_extracellular_substrate_change actual all_cells:%.2f\n",(*all_cells_)[j].internalized_substrates_GPU[i])
-		//  }
+	//Debugging
+	//int test_all_cells_size = 100; //only check 100 cells
+	int test_all_cells_size=all_cells_size;
+	for(int j=0;j<test_all_cells_size;j++){
+		std::cout<<"BEFORE Checking internalized_substrates_GPU_size:"<<all_cells_GPU[j].internalized_substrates_GPU_size<<std::endl;
+		
+		//Updates each all_cells_GPU[j] Cell's internalized_substrates_GPU array (which updates the actual Cell within 'all_cells')
+		#pragma acc update self(all_cells_GPU[j].internalized_substrates_GPU[:all_cells_GPU[j].internalized_substrates_GPU_size])
 
-		if((*all_cells_)[j]==NULL){
-			continue;
-		}
-
+		std::cout<<"Checking internalized_substrates_GPU_size:"<<all_cells_GPU[j].internalized_substrates_GPU_size<<std::endl;
+		
 		printf("Comparing..\n");
-
-		 for(int i=0;i<all_cells_gpu[j].internalized_substrates_GPU_size;i++){
-		 	printf("Checking total_extracellular_substrate_change_GPU:%.2f\n",all_cells_gpu[j].internalized_substrates_GPU[i]);
+		 for(int i=0;i<all_cells_GPU[j].internalized_substrates_GPU_size;i++){
+		 	std::cout<<"Checking total_extracellular_substrate_change_GPU:"<<all_cells_GPU[j].internalized_substrates_GPU[i]<<std::endl;
 		 }
 
 		 int host_size_IS = ((*all_cells_)[j]->internalized_substrates)->size();
-
 		 for(int i=0;i<host_size_IS;i++){
-		 	printf("Checking total_extracellular_substrate_change actual all_cells:%.2f\n",(*all_cells_)[j]->internalized_substrates[i]);
+			 double amt_tmp = (*all_cells_)[j]->internalized_substrates->data()[i];
+		 	std::cout<<"Checking total_extracellular_substrate_change actual all_cells:" <<amt_tmp<<std::endl;
 		 }
-
-		 printf("-------\n");
-
-
-		
-
-		// printf("Checking total_extracellular_substrate_change_GPU:%.2f\n",all_cells_gpu[j].internalized_substrates_GPU[0]);
-		// printf("Checking total_extracellular_substrate_change actual all_cells:%.2f\n",(*all_cells_)[j]->internalized_substrates[0]);
-
-		//printf("Checking new internalized substrates size:%d\n",all_cells_gpu[j].internalized_substrates_GPU_size);
-		
-		
 	}
-	
-	printf("Returning, finished creating all_cells_gpu..\n");
 
-	return all_cells_gpu;
+	exit(0);
+	
+	printf("Returning, finished creating all_cells_GPU..\n");
+
+	return all_cells_GPU;
 }
 
 void  Cell_GPU_UpdateAll_Secretion_Advance::copy_Cell_GPU_to_device(){
