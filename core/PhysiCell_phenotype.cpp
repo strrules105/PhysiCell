@@ -832,6 +832,74 @@ void Secretion::sync_to_microenvironment( Microenvironment* pNew_Microenvironmen
 	return; 
 }
 
+void Secretion::advance_init( Basic_Agent* pCell, Phenotype& phenotype , double dt )
+{
+	std::cout<<"Entered advance_init function"<<std::endl;
+
+	// if this phenotype is not associated with a cell, exit 
+	if( pCell == NULL )
+	{ return; }
+
+
+	//Skipped for now, need to find a way to handle init phase
+	// if there is no microenvironment, attempt to sync. 
+	if( pMicroenvironment == NULL )
+	{
+		std::cout<<"Entered pMicroenvironment == NULL"<<std::endl;
+		// first, try the cell's microenvironment
+
+		/*Matches this same Cell's 'secretion' field object
+		 to the Cell's superclass Basic_Agent's 'microenvironment'*/
+		if( pCell->get_microenvironment() )
+		{
+
+			std::cout<<"Entered pCell->get_microenvironment()"<<std::endl;
+
+			//Set's this 'Secretion' object's pMicroenvironment pointer address to the inputted pNew_Microenvironment object's address
+			//Set the size of 'secretion_rates', 'uptake_rates', 'saturation_densities', 'net_export_rates' to the pMicroenvironment->number_of_densities field
+			//number_of_densities() returns (*p_density_vectors)[0].size();
+			sync_to_microenvironment( pCell->get_microenvironment() ); 
+		}
+		// otherwise, try the default microenvironment
+		else
+		{
+			std::cout<<"Entered pCell->get_microenvironment() else statement"<<std::endl;
+
+			//Set's this 'Secretion' object's pMicroenvironment pointer address to the inputted pNew_Microenvironment object's address
+			//Set the size of 'secretion_rates', 'uptake_rates', 'saturation_densities', 'net_export_rates' to the pMicroenvironment->number_of_densities field
+			//number_of_densities() returns (*p_density_vectors)[0].size();
+			sync_to_microenvironment( get_default_microenvironment() ); 
+		}
+
+		// if we've still failed, return. 
+		if( pMicroenvironment == NULL ) 
+		{
+			std::cout<<"Entered pMicroenvironment == NULL -- still failed"<<std::endl;
+			return; 
+		}
+	}
+
+	// make sure the associated cell has the correct rate vectors 
+	if( pCell->secretion_rates != &secretion_rates )
+	{
+		std::cout<<"Entered pCell->secretion_rates != &secretion_rates"<<std::endl;
+
+		delete pCell->secretion_rates; 
+		delete pCell->uptake_rates; 
+		delete pCell->saturation_densities; 
+		delete pCell->net_export_rates; 
+		pCell->secretion_rates = &secretion_rates; 
+		pCell->uptake_rates = &uptake_rates; 
+		pCell->saturation_densities = &saturation_densities; 
+		pCell->net_export_rates = &net_export_rates; 
+		pCell->set_total_volume( phenotype.volume.total ); //void Cell::set_total_volume(double volume)
+		pCell->set_internal_uptake_constants( dt );
+	}
+
+	std::cout<<"Exited advance_init.."<<std::endl;
+
+	return;
+}
 
 //Miguel - We don't need phenotype in update_all_cells because it's the pCell's own phenotype (self referencing)
 void Secretion::advance( Basic_Agent* pCell, Phenotype& phenotype , double dt )
@@ -840,6 +908,8 @@ void Secretion::advance( Basic_Agent* pCell, Phenotype& phenotype , double dt )
 	if( pCell == NULL )
 	{ return; }
 
+
+	//SKIPPED FOR NOW, NEED TO FIND WAY TO HANDLE INIT PHASE
 	// if there is no microenvironment, attempt to sync. 
 	if( pMicroenvironment == NULL )
 	{
@@ -949,6 +1019,7 @@ void Secretion::advance( Basic_Agent* pCell, Phenotype& phenotype , double dt )
 
 	// now, call the BioFVM secretion/uptake function 
 	
+	// 'dt' is diffusion_dt in main.cpp
 	pCell->simulate_secretion_and_uptake( pMicroenvironment , dt ); 
 	
 	return; 

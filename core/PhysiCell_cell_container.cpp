@@ -258,31 +258,37 @@ void Cell_Container::update_all_cells_GPU(double t, double phenotype_dt_ , doubl
 	// secretions and uptakes. Syncing with BioFVM is automated. 
 
 	int all_cells_size = (*all_cells).size(); //Get the current total amount of cells
-	BioFVM::Microenvironment *default_microenv_address = BioFVM::get_default_microenvironment();
+	//BioFVM::Microenvironment *default_microenv_address = BioFVM::get_default_microenvironment();
 	//unsigned long int *default_microenv_address = &(*default_microenv);
 
-	std::cout<<"Default microenv address:"<<default_microenv_address<<std::endl;
-
-	//#pragma omp parallel for 
-	#pragma acc parallel loop copyin(all_cells_GPU[0:all_cells_size])
-	for( int i=0; i < all_cells_size; i++ )
-	{
-		//printf("Size of interalized_substrates_GPU of each GPU Cell:%d\n",all_cells_GPU[i].internalized_substrates_GPU_size);
-		//printf("Checking internalized_substrates_GPU[0] of each GPU Cell:%.2f\n",all_cells_GPU[i].internalized_substrates_GPU[0]);
+	// secretions and uptakes. Syncing with BioFVM is automated. 
 
 
-		//(*all_cells)[i]->phenotype.secretion.advance( (*all_cells)[i], (*all_cells)[i]->phenotype , diffusion_dt_ );
-		
-		//Extracting and running portions from phenotype.secretion.advance below:
-		// if(all_cells_GPU[i]==NULL){
-		// 	continue;
-		// }
-		// else{
+	//Runs secretion advance on host or GPU --------------
+	// #pragma omp parallel for 
+	// for( int i=0; i < (*all_cells).size(); i++ )
+	// {
+	// 	(*all_cells)[i]->phenotype.secretion.advance( (*all_cells)[i], (*all_cells)[i]->phenotype , diffusion_dt_ );
+	// }
 
-		// }
+	bool default_microenvironment_options_track_internalized_substrates_in_each_agent_GPU = default_microenvironment_options.track_internalized_substrates_in_each_agent;
+
+	std::cout<<"default_track_internalized_gpu:"<<default_microenvironment_options_track_internalized_substrates_in_each_agent_GPU<<std::endl;
+
+	#pragma acc parallel loop copyin(all_cells_size,default_microenvironment_options_track_internalized_substrates_in_each_agent_GPU) present(all_cells_GPU)
+	for(int i=0;i<all_cells_size;i++){
+		all_cells_GPU[i].secretion_advance_GPU(diffusion_dt_,default_microenvironment_options_track_internalized_substrates_in_each_agent_GPU);
 	}
+	
 
-	exit(0);
+	std::cout<<"FINISHED SECRETION_ADVANCE_GPU"<<std::endl;
+
+	//--------------------------------------------
+
+	
+
+	//Everything else is on host cpu
+
 	
 	//if it is the time for running cell cycle, do it!
 	double time_since_last_cycle= t- last_cell_cycle_time;
@@ -382,6 +388,7 @@ void Cell_Container::update_all_cells_GPU(double t, double phenotype_dt_ , doubl
 	}
 	
 	initialzed=true;
+	
 	return;
 }
 
@@ -394,6 +401,9 @@ void Cell_Container::update_all_cells(double t, double phenotype_dt_ , double me
 	{
 		(*all_cells)[i]->phenotype.secretion.advance( (*all_cells)[i], (*all_cells)[i]->phenotype , diffusion_dt_ );
 	}
+
+	//-------------------------------------------
+	//Leave below on CPU 2/25/21
 	
 	//if it is the time for running cell cycle, do it!
 	double time_since_last_cycle= t- last_cell_cycle_time;

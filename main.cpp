@@ -177,6 +177,7 @@ int main( int argc, char* argv[] )
 	printf("MAXTIME:%.2f, ACTUAL MAXTIME:%.2f\n",PhysiCell_settings.max_time,PhysiCell_settings.max_time + 0.1*diffusion_dt);
 
 
+	//Testing - 2/05/21
 	// std::vector<Cell> test_all_cells;
 	// printf("Created test_all_cells\n");
 	// test_all_cells.push_back(Cell());
@@ -187,11 +188,8 @@ int main( int argc, char* argv[] )
 	// //printf("Added cell 3\n");
 	// test_all_cells.push_back(Cell());
 	//printf("Added cell 4\n");
-
 	//std::cout << test_all_cells[0].cell_source_sink_solver_temp_export1.size()<<std::endl;
-
 	//printf("Size of test_all_cells before loop:%d\n",test_all_cells.size());
-
 	//printf("Finished creating cells:\n");
 
 
@@ -298,6 +296,10 @@ int main( int argc, char* argv[] )
 			// if( default_microenvironment_options.calculate_gradients )
 			// { microenvironment.compute_all_gradient_vectors(); }
 			
+
+
+
+			//----------------------------------------------------
 			// run PhysiCell (Non-GPU)
 			//((Cell_Container *)microenvironment.agent_container)->update_all_cells( PhysiCell_globals.current_time );
 			
@@ -307,18 +309,18 @@ int main( int argc, char* argv[] )
 			// since these are ordinarily automatically done as part of phenotype.secretion in the 
 			// PhysiCell update that we commented out above. Remove this when we go 
 			// back to main code 
-			
+
 			// #pragma omp parallel for 
 			// for( int i=0; i < (*all_cells).size(); i++ )
 			// {
 			// 	(*all_cells)[i]->phenotype.secretion.advance( (*all_cells)[i], (*all_cells)[i]->phenotype , diffusion_dt );
 			// }			
 
-			/*Start of GPU*/
-
+			/*Start of GPU----------------------------*/
 			//Copies over 'all_cells' host Cell vector to gpu device
-			all_cells_GPU = Cell_GPU_UpdateAll_Secretion_Advance::create_GPU_Cells_Arr(all_cells);
+			all_cells_GPU = Cell_GPU_UpdateAll_Secretion_Advance::create_GPU_Cells_Arr(all_cells, diffusion_dt );
 
+			std::cout<<"inside main before update_all_cells_GPU"<<std::endl;
 
 			// run PhysiCell (GPU)
 			((Cell_Container *)microenvironment.agent_container)->update_all_cells_GPU(PhysiCell_globals.current_time);

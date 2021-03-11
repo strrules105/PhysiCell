@@ -62,10 +62,10 @@ class Basic_Agent
 	Microenvironment* microenvironment; 
 	int selected_microenvironment; 
 	int current_microenvironment_voxel_index;
-	double volume;	
+	//double volume;	
 	
  protected:
-	
+
  public:
 	bool is_active;
 	std::vector<double> cell_source_sink_solver_temp1;
@@ -74,8 +74,10 @@ class Basic_Agent
 	std::vector<double> cell_source_sink_solver_temp_export2; 	
 	std::vector<double> previous_velocity; 
 //	bool is_active;
-	bool volume_is_changed; //made protected to be accessed for GPU
-	int current_voxel_index; //made protected to be access for GPU
+
+	double volume; //made public to be accessed for GPU
+	bool volume_is_changed; //made public to be accessed for GPU
+	int current_voxel_index; //made public to be access for GPU
 	
 	std::vector<double> total_extracellular_substrate_change; 
 	

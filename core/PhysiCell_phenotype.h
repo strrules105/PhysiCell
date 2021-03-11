@@ -427,6 +427,10 @@ class Secretion
 	void set_all_uptake_to_zero( void ); // NEW
 	void scale_all_secretion_by_factor( double factor ); // NEW
 	void scale_all_uptake_by_factor( double factor ); // NEW
+
+
+	/*New method to do all init portions of void advance(pCell, phenotype, dt) before going to GPU*/
+	void advance_init( Basic_Agent* pCell, Phenotype& phenotype , double dt );
 };
 
 class Cell_Functions

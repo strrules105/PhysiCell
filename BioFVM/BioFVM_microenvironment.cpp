@@ -724,7 +724,7 @@ int Microenvironment::nearest_voxel_index( std::vector<double>& position )
 { return mesh.nearest_voxel_index( position ); }
 
 Voxel& Microenvironment::voxels( int voxel_index )
-{ return mesh.voxels[voxel_index]; }
+{ return mesh.voxels[voxel_index]; } //Gets the Voxel object as the 'voxel_index' index
 
 std::vector<unsigned int> Microenvironment::nearest_cartesian_indices( std::vector<double>& position )
 { return mesh.nearest_cartesian_indices( position ); }

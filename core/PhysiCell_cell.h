@@ -79,6 +79,8 @@
 
 #include "./PhysiCell_standard_models.h" 
 
+#include <cstdint>
+
 using namespace BioFVM; 
 
 namespace PhysiCell{
@@ -158,84 +160,132 @@ class Cell_GPU_UpdateAll_Secretion_Advance{
 		//unsigned long int *default_microenv_address; //should point to BioFVM::default_microenvironment
 
 		//Basic_Agent -> Cell -> 'phenotype' -> 'secretion' -> rates fields
-		double * cell_phenotype_secretion_secretion_rates_GPU;
-		double * cell_phenotype_secretion_update_rates_GPU;
-		double * cell_phenotype_secretion_saturation_densities_GPU;
-		double * cell_phenotype_secretion_net_export_rates_GPU;
+		// uintptr_t cell_phenotype_secretion_secretion_rates_GPU;
+		// uintptr_t cell_phenotype_secretion_update_rates_GPU;
+		// uintptr_t cell_phenotype_secretion_saturation_densities_GPU;
+		// uintptr_t cell_phenotype_secretion_net_export_rates_GPU;
+
+		// //Basic_Agent -> Cell -> rates fields
+		// uintptr_t cell_secretion_rates_GPU;
+		// uintptr_t cell_update_rates_GPU;
+		// uintptr_t cell_saturation_densities_GPU;
+		// uintptr_t cell_net_export_rates_GPU;
+
+		//Basic_Agent -> Cell -> 'phenotype' -> 'secretion' -> rates fields
+		// double * cell_phenotype_secretion_secretion_rates_GPU;
+		// double * cell_phenotype_secretion_update_rates_GPU;
+		// double * cell_phenotype_secretion_saturation_densities_GPU;
+		// double * cell_phenotype_secretion_net_export_rates_GPU;
 
 		//Basic_Agent -> Cell -> rates fields
 		double * cell_secretion_rates_GPU;
+		int cell_secretion_rates_GPU_size;
 		double * cell_update_rates_GPU;
+		int cell_update_rates_GPU_size;
 		double * cell_saturation_densities_GPU;
+		int cell_saturation_densities_GPU_size;
 		double * cell_net_export_rates_GPU;
+		int cell_net_export_rates_GPU_size;
 
 
 		/*---------------*/
 
 		/*Variables used in pCell->set_total_volume( phenotype.volume.total ); */
-		double cell_phenotype_volume_total; //Cell->phenotype.volume.total
-		double *volume_GPU;
+		double * cell_phenotype_volume_total; //Cell->phenotype.volume.total
+		double * volume_GPU;
 
 
 		/*-----------------------*/
+
 		
 
 		/*GPU Version of void Basic_Agent::simulate_secretion_and_uptake( Microenvironment* pS, double dt )*/
-		bool *is_active_GPU;
-		bool *volume_is_changed_GPU;
+		bool * is_active_GPU;
+		bool * volume_is_changed_GPU;
 
-		double *total_extracellular_substrate_change_GPU; //Pointer to array of doubles (total_extracellular_substrate_change)
+		double * total_extracellular_substrate_change_GPU; //Pointer to array of doubles (total_extracellular_substrate_change)
 		int total_extracellular_substrate_change_GPU_size;
 
-		double *pS_current_voxel_index_arr_GPU; //Pointer to array of doubles ((*pS)(current_voxel_index))
+		double * pS_current_voxel_index_arr_GPU; //Pointer to array of doubles ((*pS)(current_voxel_index))
 		int pS_current_voxel_index_arr_GPU_size;
 
-		double *internalized_substrates_GPU; //Pointer to array of doubles (internalized_substrates)
+		double * internalized_substrates_GPU; //Pointer to array of doubles (internalized_substrates)
 		int internalized_substrates_GPU_size;
 
-		double* cell_source_sink_solver_temp1_GPU;
+		double * cell_source_sink_solver_temp1_GPU;
 		int cell_source_sink_solver_temp1_GPU_size;
 
-		double* cell_source_sink_solver_temp2_GPU;
+		double * cell_source_sink_solver_temp2_GPU;
 		int cell_source_sink_solver_temp2_GPU_size;
 
-		double* cell_source_sink_solver_temp_export1_GPU; 
+		double * cell_source_sink_solver_temp_export1_GPU; 
 		int cell_source_sink_solver_temp_export1_GPU_size;
 
-		double* cell_source_sink_solver_temp_export2_GPU; 	
+		double * cell_source_sink_solver_temp_export2_GPU; 	
 		int cell_source_sink_solver_temp_export2_GPU_size;
 
+		//Below is part of Basic_Agent::set_internal_update_constants(dt)
+		/*Cell->phenotype->secretion->pMicroenvironment->mesh->voxels   (std::vector<Voxel> voxels) -> volume of each Voxel object*/
+		//double ** cell_phenotype_secretion_pMicroenv_mesh_voxels_volumes_GPU;
+		//int cell_phenotype_secretion_pMicroenv_mesh_voxels_GPU_size; //the size of std::vector<Voxel> voxels
+		//Better: we can probably just store the Voxel[voxel_index].volume of each Cell before going to GPU
+		double * cell_phenotype_secretion_pMicroenv_mesh_current_voxel_volume;
+		
 
 		Cell_GPU_UpdateAll_Secretion_Advance();
-		Cell_GPU_UpdateAll_Secretion_Advance(Cell *cell);
+		Cell_GPU_UpdateAll_Secretion_Advance(Cell *cell); 
 		~Cell_GPU_UpdateAll_Secretion_Advance();
 		void copy_Cell_GPU_to_device();
 
-		#pragma acc routine
-		void simulate_secretion_and_uptake_GPU(Microenvironment* pS, double dt);
-
-		#pragma acc routine
-		void addArrs(double *arr1, int &arr1_size, double *arr2, int &arr2_size);
-
-		#pragma acc routine
-		void multiArrs(double *arr1, int &arr1_size, double *arr2, int &arr2_size);
-
-		#pragma acc routine
-		void subArrs(double *arr1, int &arr1_size, double *arr2, int &arr2_size);
-
-		#pragma acc routine
-		void divArrs(double *arr1, int &arr1_size, double *arr2, int &arr2_size);
-
-		#pragma acc routine
-		void arrAddConst(double *arr, int arr_size, double c);
 
 		void update_device();
 		void update_host();
 
-		
+		#pragma acc routine
+		void axpy_GPU( double* y, int y_size, double a , double* x, int x_size );
+
+		#pragma acc routine
+		void secretion_advance_GPU(double dt, bool default_microenvironment_options_track_internalized_substrates_in_each_agent_GPU);
+
+		#pragma acc routine
+		void simulate_secretion_and_uptake_GPU(double dt, bool default_microenvironment_options_track_internalized_substrates_in_each_agent_GPU);
+
+		#pragma acc routine
+		void set_internal_uptake_constants_GPU( double dt );
+
+		#pragma acc routine
+		void copyValsArr(double *arr1, int arr1_size, double *arr2, int arr2_size);
+
+		#pragma acc routine
+		void setArrConst(double *arr1, int arr1_size, double c);
+
+		#pragma acc routine
+		void addArrs(double *arr1, int arr1_size, double *arr2, int arr2_size);
+
+		#pragma acc routine
+		void multiArrs(double *arr1, int arr1_size, double *arr2, int arr2_size);
+
+		#pragma acc routine
+		void subArrs(double *arr1, int arr1_size, double *arr2, int arr2_size);
+
+		#pragma acc routine
+		void divArrs(double *arr1, int arr1_size, double *arr2, int arr2_size);
+
+		#pragma acc routine
+		void arrAddConst(double *arr, int arr_size, double c);
+
+		#pragma acc routine
+		void arrMultiConst(double *arr, int arr_size, double c);
+
+		#pragma acc routine
+		void arrDivConst(double *arr, int arr_size, double c);
+
+			
 
 	/*Takes in a vector of Cell pointers and outputs a pointer to an array of 'Cell_GPU_UpdateAll_Secretion_Advance' objects*/
-	static Cell_GPU_UpdateAll_Secretion_Advance* create_GPU_Cells_Arr(std::vector<Cell*> *all_cells_);
+	static Cell_GPU_UpdateAll_Secretion_Advance* create_GPU_Cells_Arr(std::vector<Cell*> *all_cells_ , double dt_);
+
+
 	
 };
 
