@@ -504,11 +504,11 @@ void Cell_GPU_UpdateAll_Secretion_Advance::secretion_advance_GPU(double dt, bool
 	simulate_secretion_and_uptake_GPU(dt, default_microenvironment_options_track_internalized_substrates_in_each_agent_GPU);
 }
 
-Cell_GPU_UpdateAll_Secretion_Advance* Cell_GPU_UpdateAll_Secretion_Advance::create_GPU_Cells_Arr(std::vector<Cell*> *all_cells_, double dt_ ){
+Cell_GPU_UpdateAll_Secretion_Advance* Cell_GPU_UpdateAll_Secretion_Advance::create_GPU_Cells_Arr(std::vector<Cell*> *all_cells_, int all_cells_size_, double dt_ ){
 	std::cout<<(*all_cells_).size()<<std::endl;
 
 
-	int all_cells_size = (*all_cells_).size();
+	int all_cells_size = all_cells_size_;
 	Cell_GPU_UpdateAll_Secretion_Advance* all_cells_GPU = new Cell_GPU_UpdateAll_Secretion_Advance[all_cells_size]; //might increase size of this array?
 
 	//Creates and allocates each cell on all_cells_GPU array on host

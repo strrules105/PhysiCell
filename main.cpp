@@ -72,6 +72,7 @@
 #include <cmath>
 #include <omp.h>
 #include <fstream>
+#include <openacc.h>
 
 #include "./core/PhysiCell.h"
 #include "./modules/PhysiCell_standard_modules.h" 
@@ -301,29 +302,38 @@ int main( int argc, char* argv[] )
 
 			//----------------------------------------------------
 			// run PhysiCell (Non-GPU)
-			//((Cell_Container *)microenvironment.agent_container)->update_all_cells( PhysiCell_globals.current_time );
+			((Cell_Container *)microenvironment.agent_container)->update_all_cells( PhysiCell_globals.current_time );
 			
-
-
-			// manually call the code for cell sources and sinks, 
-			// since these are ordinarily automatically done as part of phenotype.secretion in the 
-			// PhysiCell update that we commented out above. Remove this when we go 
-			// back to main code 
-
-			// #pragma omp parallel for 
-			// for( int i=0; i < (*all_cells).size(); i++ )
-			// {
-			// 	(*all_cells)[i]->phenotype.secretion.advance( (*all_cells)[i], (*all_cells)[i]->phenotype , diffusion_dt );
-			// }			
+		
 
 			/*Start of GPU----------------------------*/
 			//Copies over 'all_cells' host Cell vector to gpu device
-			all_cells_GPU = Cell_GPU_UpdateAll_Secretion_Advance::create_GPU_Cells_Arr(all_cells, diffusion_dt );
+			/*int all_cells_size = (*all_cells).size();
+			all_cells_GPU = Cell_GPU_UpdateAll_Secretion_Advance::create_GPU_Cells_Arr(all_cells,all_cells_size, diffusion_dt );
 
 			std::cout<<"inside main before update_all_cells_GPU"<<std::endl;
 
 			// run PhysiCell (GPU)
-			((Cell_Container *)microenvironment.agent_container)->update_all_cells_GPU(PhysiCell_globals.current_time);
+			((Cell_Container *)microenvironment.agent_container)->update_all_cells_GPU      (PhysiCell_globals.current_time);
+
+
+			//Current issue 3/11/21: Need a way to handle adding, removal of cells from host all cells array
+			//on host, since all_cells is a vector -> very easy to add,remove. But on GPU it is an array of cells, making it difficult to add or remove
+			//Copies each individiual host Cell's indirect members over
+
+			std::cout<<"Device_type main:"<<acc_get_device_type()<<std::endl;
+
+			//#pragma acc loop device_type(multicore) parallel
+			for(int i=0;i<all_cells_size;i++){
+				//Copying over each indirect member (pointers pointing to arrays e.g. 'double * total_extracellular_substrate_change_GPU') 
+				#pragma acc exit data delete(all_cells_GPU[i].is_active_GPU[:1],all_cells_GPU[i].volume_is_changed_GPU[:1],all_cells_GPU[i].total_extracellular_substrate_change_GPU[:all_cells_GPU[i].total_extracellular_substrate_change_GPU_size],all_cells_GPU[i].pS_current_voxel_index_arr_GPU[:all_cells_GPU[i].pS_current_voxel_index_arr_GPU_size],all_cells_GPU[i].internalized_substrates_GPU[:all_cells_GPU[i].internalized_substrates_GPU_size], all_cells_GPU[i].cell_source_sink_solver_temp1_GPU[:all_cells_GPU[i].cell_source_sink_solver_temp1_GPU_size],all_cells_GPU[i].cell_source_sink_solver_temp2_GPU[:all_cells_GPU[i].cell_source_sink_solver_temp2_GPU_size],all_cells_GPU[i].cell_source_sink_solver_temp_export1_GPU[:all_cells_GPU[i].cell_source_sink_solver_temp_export1_GPU_size],all_cells_GPU[i].cell_source_sink_solver_temp_export2_GPU[:all_cells_GPU[i].cell_source_sink_solver_temp_export2_GPU_size], all_cells_GPU[i].cell_secretion_rates_GPU[:all_cells_GPU[i].cell_secretion_rates_GPU_size],all_cells_GPU[i].cell_update_rates_GPU[:all_cells_GPU[i].cell_update_rates_GPU_size],all_cells_GPU[i].cell_saturation_densities_GPU[:all_cells_GPU[i].cell_saturation_densities_GPU_size],all_cells_GPU[i].cell_net_export_rates_GPU[:all_cells_GPU[i].cell_net_export_rates_GPU_size])
+			}
+			std::cout<<"Deleted all cells' members from GPU memory"<<std::endl;
+
+			//Create the all_cells_GPU array on device (shallow copies each host Cell to GPU)
+			#pragma acc exit data delete(all_cells_GPU[0:all_cells_size])
+			std::cout<<"Deleted all_cells_GPU array from GPU memory"<<std::endl;*/
+			//----------------------------------
 			
 			PhysiCell_globals.current_time += diffusion_dt;
 			outs++;
