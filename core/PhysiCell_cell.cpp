@@ -2711,5 +2711,40 @@ void initialize_cell_definitions_from_pugixml( void )
 }
 
 
+//3/28/21-----------------------------
+
+//This is the new Cell class which will use the new 'Cell_Part' class in order to do secretion
+Cell_::Cell_(){
+	//1. Setting Unique ID (for this cell)
+	this.unique_id = Cell_ID_Counter;
+	Cell_ID_Counter++;
+
+	//2. Type (integer)
+	this.type = cell_defaults.type; 
+
+	//3.Pointer to cell definition
+	this.cell_definition = NULL;
+
+	//4.Vector of Cell_Part pointers;
+	std::vector<Cell_Part*> cell_parts;
+
+	//5.Position
+	this.assign_position(0,0,0); //need to lookup what the initial positon is
+
+	//6. Vector of cell pointers of mechanically interacting cells
+	std::vector<Cell_*> interacting_cells;
+
+	//7.Phenotype
+	this.phenotype = cell_defaults.phenotype;
+
+}
+
+Cell_::assign_position(double x, double y, double z){
+	this.position[0] = x;
+	this.position[1] = y;
+	this.position[2] = z;
+}
+
+
 };
 

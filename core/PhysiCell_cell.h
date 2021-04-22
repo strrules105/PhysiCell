@@ -81,6 +81,8 @@
 
 #include <cstdint>
 
+#include "./PhysiCell_cell_part.h"
+
 using namespace BioFVM; 
 
 namespace PhysiCell{
@@ -414,5 +416,65 @@ extern std::vector<double> (*cell_division_orientation)(void);
 
 
 };
+
+
+
+class Cell_//: public Basic_Agent
+{
+	static int Cell_ID_Counter = 0; //keeps track of the cell id (increments each time a new cell is created)
+
+	private:
+	
+
+	public:
+		//1. ID
+		int unique_id; //cell's id
+
+		//2. Type (integer)
+		int type;
+
+		//3. Pointer to cell definition
+		Cell_Definition* cell_definition;
+
+		//4.Vector of Cell_Part pointers
+		std::vector<Cell_Part*> cell_parts;
+
+		//5. Position
+		int position[3]; //x,y,z
+
+		///6.Vector of Cell Pointers (mechincally interacting cells)
+		std::vector<Cell_*> interacting_cells;
+
+		//7.Phenotype
+		Phenotype phenotype;
+
+
+		//Need a constructor that makes a circle or sphere of subagents?
+		Cell_();
+
+		//removal() method or just use deconstructor?
+		removal(); //needs to transmit removal instructions
+		~Cell_();
+		
+
+		divide_assign_cell_part_agents(); //creates a new cell, assigns Cell_Part agents to new cells accordingly
+
+
+
+		get_total_volume(); //Phenotype.volume will need to query subagents to get total volume
+
+		get_rates_transfer_total_internalized_substrates(); //Phenotype.secretion needs rates in the subagents, then transfer total internalized substrates to/from parent cell, since SBML may act on these
+
+		cell_motility(); //need to add a net locomotive force to each subagent to get "the whole thing to push in right direction"
+
+		check_cell_state_split_or_delete(); //Cell volume will need to possibly grow/shrink individual subagents, will need to query them all to decide if any should be split or deleted
+
+		//Above are the overleaf instructions-------------------------
+
+		//Assigns position
+		void assign_position(double x, double y, double z);
+
+	
+}
 
 #endif
