@@ -39,11 +39,7 @@ CFLAGS := -march=$(ARCH) -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -s
 #ACCFLAGS := -std=c++11 -Minline -Minfo=accel -acc -ta=tesla:managed -DNDEBUG
 #ACCFLAGS := -std=c++11 -Minline -Minfo=accel -acc -ta=host
 #ACCFLAGS := -std=c++11 -Minline -Minfo=accel -acc -ta=multicore
-#NVACCFLAGS := -std=c++11 -Minline -Minfo=accel -acc -gpu=managed
-#NVACCFLAGS := -std=c++11 -Minline -Minfo=accel -acc -ta=tesla,multicore -gpu=cc70 -Mlarge_arrays
-#NVACCFLAGS := -std=c++11 -Minline -Minfo=accel -acc -ta=tesla,multicore -Mlarge_arrays
-NVACCFLAGS := -std=c++11 -Minline -Minfo=accel -acc -ta=tesla,multicore
-#use -Mlarge_arrays for large arrays allocated to GPU (using for cells_arr_GPU since can be 1000s+ cells)?
+NVACCFLAGS := -std=c++11 -Minline -Minfo=accel -acc -ta=tesla
 
 COMPILE_COMMAND := $(CC) $(CFLAGS) 
 
