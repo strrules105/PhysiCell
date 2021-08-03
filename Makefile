@@ -299,7 +299,7 @@ reset:
 
 clean:
 	rm -f *.o
-	rm -f $(PROGRAM_NAME)*
+	rm -f $(PROGRAM_NAME)
 
 data-cleanup:
 	rm -f *.mat
